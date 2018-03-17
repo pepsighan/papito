@@ -31,6 +31,18 @@ pub struct VElement {
     is_self_closing: bool,
 }
 
+impl VElement {
+    pub fn new(tag: CowStr, class: Option<ClassString>, attrs: Option<Attributes>, child: Option<VNode>, is_self_closing: bool) -> VElement {
+        VElement {
+            tag,
+            class,
+            attrs,
+            child: child.map(|it| Box::new(it)),
+            is_self_closing
+        }
+    }
+}
+
 impl Display for VElement {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "<{}", self.tag)?;
