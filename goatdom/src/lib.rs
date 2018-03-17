@@ -34,6 +34,9 @@ macro_rules! h {
     ({$($k:expr => $v:expr),*}) => {
         $crate::h($crate::li(vec![ $( ($k, $v) ),* ]))
     };
+    ([$($v:expr),*]) => {
+        $crate::h($crate::li(vec![ $( $v ),* ]))
+    };
     ($n:expr) => {
         $crate::h($crate::txt($n))
     };
@@ -104,6 +107,28 @@ mod test {
                 (Cow::from("2"), VNode::Element(VElement::new("div".into(), None, None, None, false))),
                 (Cow::from("3"), VNode::Element(VElement::new("div".into(), None, None, None, false))),
             ].into()),
+            node
+        );
+    }
+
+    #[test]
+    fn should_create_vlist_without_keys() {
+        let node = h!([h!("div", _), h!("div", _), h!("div", _)]);
+        assert_eq!(
+            VNode::List(vec![
+                (Cow::from("0"), VNode::Element(VElement::new("div".into(), None, None, None, false))),
+                (Cow::from("1"), VNode::Element(VElement::new("div".into(), None, None, None, false))),
+                (Cow::from("2"), VNode::Element(VElement::new("div".into(), None, None, None, false))),
+            ].into()),
+            node
+        );
+    }
+
+    #[test]
+    fn should_create_velement_with_class() {
+        let node = h!("div", vec![("class", "container")]);
+        assert_eq!(
+            VNode::Element(VElement::new("div".into(), Some("container".into()), None, None, false)),
             node
         );
     }
