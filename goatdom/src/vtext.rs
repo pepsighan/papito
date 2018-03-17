@@ -2,12 +2,13 @@ use CowStr;
 use std::fmt::Display;
 use std::fmt::{Formatter, self};
 
+#[derive(Debug, Eq, PartialEq)]
 pub struct VText {
     content: CowStr
 }
 
 impl VText {
-    fn new(content: CowStr) -> VText {
+    pub fn new(content: CowStr) -> VText {
         VText {
             content
         }

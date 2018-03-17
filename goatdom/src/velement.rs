@@ -4,6 +4,7 @@ use vnode::VNode;
 use std::fmt::Display;
 use std::fmt::{Formatter, self};
 
+#[derive(Debug, Eq, PartialEq)]
 pub struct ClassString(CowStr);
 
 impl Display for ClassString {
@@ -12,6 +13,7 @@ impl Display for ClassString {
     }
 }
 
+#[derive(Debug, Eq, PartialEq)]
 pub struct Attributes(IndexMap<CowStr, CowStr>);
 
 impl Display for Attributes {
@@ -23,6 +25,7 @@ impl Display for Attributes {
     }
 }
 
+#[derive(Debug, Eq, PartialEq)]
 pub struct VElement {
     tag: CowStr,
     class: Option<ClassString>,
