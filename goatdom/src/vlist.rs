@@ -29,8 +29,9 @@ impl Display for VList {
 
 impl<T: Into<CowStr>> From<Vec<(T, VNode)>> for VList {
     fn from(item: Vec<(T, VNode)>) -> Self {
-        VList {
-            children: item.into_iter().map(|(k, v)| (k.into(), v)).collect(),
-        }
+        let children = item.into_iter()
+            .map(|(k, v)| (k.into(), v))
+            .collect();
+        VList::new(children)
     }
 }
