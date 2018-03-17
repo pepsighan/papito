@@ -37,6 +37,9 @@ macro_rules! h {
     ($n:expr) => {
         $crate::h($crate::txt($n))
     };
+    ($n:expr, _) => {
+        $crate::h($crate::el(($n, ())))
+    };
     ($n:expr, $($m:expr),*) => {
         $crate::h($crate::el(($n, $( $m ),*)))
     };
@@ -46,10 +49,17 @@ macro_rules! h {
 mod test {
     use vtext::VText;
     use vnode::VNode;
+    use velement::VElement;
 
     #[test]
     fn should_create_text_vnode() {
         let node = h!("Hello World");
         assert_eq!(VNode::Text(VText::new("Hello World".into())), node);
+    }
+
+    #[test]
+    fn should_create_empty_velement() {
+        let node = h!("div", _);
+        assert_eq!(VNode::Element(VElement::new("div".into(), None, None, None, false)), node);
     }
 }
