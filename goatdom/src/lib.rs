@@ -31,10 +31,10 @@ pub fn h<T: Into<VNode>>(node_like: T) -> VNode {
 
 #[macro_export]
 macro_rules! h {
-    ({ $( $k:expr => $v:expr ),* }) => {
+    ({ $( $k:expr => $v:expr ),* $(,)* }) => {
         $crate::h($crate::li(vec![ $( ($k, $v) ),* ]))
     };
-    ([ $( $v:expr ),* ]) => {
+    ([ $( $v:expr ),* $(,)* ]) => {
         $crate::h($crate::li(vec![ $( $v ),* ]))
     };
     ($n:expr) => {
@@ -43,13 +43,13 @@ macro_rules! h {
     ($n:expr, _) => {
         $crate::h($crate::el(($n, ())))
     };
-    ($n:expr, { $($k:expr => $v:expr),* }) => {
+    ($n:expr, { $($k:expr => $v:expr),* $(,)* }) => {
         $crate::h($crate::el(($n, vec![ $( ($k, $v) ),* ])))
     };
-    ($n:expr, { $($k:expr => $v:expr),* }, $( $o:expr ),* ) => {
+    ($n:expr, { $($k:expr => $v:expr),* }, $( $o:expr ),* $(,)* ) => {
         $crate::h($crate::el(($n, vec![ $( ($k, $v) ),* ], $( $o ),*)))
     };
-    ($n:expr, $( $m:expr ),*) => {
+    ($n:expr, $( $m:expr ),* $(,)*) => {
         $crate::h($crate::el(($n, $( $m ),*)))
     };
 }
@@ -144,6 +144,58 @@ mod test {
         let node = h!("div", { "class" => "container" });
         assert_eq!(
             VNode::Element(VElement::new("div".into(), Some("container".into()), None, None, false)),
+            node
+        );
+    }
+
+    #[test]
+    fn should_create_velement_with_attributes() {
+        let node = h!("div", { "style" => "background-color: black;" });
+        assert_eq!(
+            VNode::Element(VElement::new("div".into(), None, Some(vec![("style", "background-color: black;")].into()), None, false)),
+            node
+        );
+    }
+
+    #[test]
+    fn should_create_nested_structure() {
+        let node = h!("div", h!("span", _));
+        assert_eq!(
+            VNode::Element(VElement::new(
+                "div".into(),
+                None,
+                None,
+                Some(VNode::Element(VElement::new(
+                    "span".into(),
+                    None,
+                    None,
+                    None,
+                    false))),
+                false)
+            ),
+            node
+        );
+    }
+
+    #[test]
+    fn should_create_heterogenous_vlist() {
+        let node = h!([
+            h!("div", _),
+            h!("Hello World"),
+            h!([
+                h!("div", _),
+                h!("Hello World"),
+            ])
+        ]);
+        assert_eq!(
+            VNode::List(vec![
+                VNode::Element(VElement::new("div".into(), None, None, None, false)),
+                VNode::Text(VText::new("Hello World".into())),
+                VNode::List(vec![
+                    VNode::Element(VElement::new("div".into(), None, None, None, false)),
+                    VNode::Text(VText::new("Hello World".into()))
+                ].into())
+            ].into()),
             node
         );
     }
