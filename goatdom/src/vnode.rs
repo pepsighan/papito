@@ -27,7 +27,7 @@ impl Display for VNode {
 }
 
 macro_rules! impl_conversion_to_vnode {
-    ($variant:ident, $inner:ident) => {
+    ($variant:ident, $inner:ty) => {
         impl From<$inner> for VNode {
             fn from(item: $inner) -> Self {
                 VNode::$variant(item)
