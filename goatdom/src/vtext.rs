@@ -7,7 +7,7 @@ pub struct VText {
 }
 
 impl VText {
-    pub fn new(content: CowStr) -> VText {
+    fn new(content: CowStr) -> VText {
         VText {
             content
         }
@@ -17,5 +17,11 @@ impl VText {
 impl Display for VText {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "{}", self.content)
+    }
+}
+
+impl<T: Into<CowStr>> From<T> for VText {
+    fn from(item: T) -> Self {
+        VText::new(item.into())
     }
 }
