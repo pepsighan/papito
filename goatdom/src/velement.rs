@@ -27,7 +27,8 @@ pub struct VElement {
     tag: CowStr,
     class: Option<ClassString>,
     attrs: Option<Attributes>,
-    child: Option<Box<VNode>>
+    child: Option<Box<VNode>>,
+    is_self_closing: bool,
 }
 
 impl Display for VElement {
@@ -39,10 +40,14 @@ impl Display for VElement {
         if let Some(ref attrs) = self.attrs {
             write!(f, "{}", attrs)?;
         }
-        write!(f, ">")?;
-        if let Some(ref child) = self.child {
-            write!(f, "{}", child)?;
+        if self.is_self_closing {
+            write!(f, ">")
+        } else {
+            write!(f, ">")?;
+            if let Some(ref child) = self.child {
+                write!(f, "{}", child)?;
+            }
+            write!(f, "</{}>", self.tag)
         }
-        write!(f, "</{}>", self.tag)
     }
 }
