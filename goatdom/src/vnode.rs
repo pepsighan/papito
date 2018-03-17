@@ -10,6 +10,12 @@ pub enum VNode {
     List(VList)
 }
 
+impl VNode {
+    pub fn new<T: Into<VNode>>(content: T) -> VNode {
+        content.into()
+    }
+}
+
 impl Display for VNode {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match *self {
