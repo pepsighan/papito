@@ -19,3 +19,17 @@ impl Display for VNode {
         }
     }
 }
+
+macro_rules! impl_conversion_to_vnode {
+    ($variant:ident, $inner:ident) => {
+        impl From<$inner> for VNode {
+            fn from(item: $inner) -> Self {
+                VNode::$variant(item)
+            }
+        }
+    };
+}
+
+impl_conversion_to_vnode!(Text, VText);
+impl_conversion_to_vnode!(Element, VElement);
+impl_conversion_to_vnode!(List, VList);
