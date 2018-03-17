@@ -67,6 +67,12 @@ impl Display for VElement {
     }
 }
 
+impl<A: Into<CowStr>> From<A> for ClassString {
+    fn from(item: A) -> Self {
+        ClassString(item.into())
+    }
+}
+
 impl<A, B> From<Vec<(A, B)>> for Attributes where
     A: Into<CowStr>,
     B: Into<CowStr> {
@@ -158,5 +164,5 @@ impl<A> From<(A, VNode)> for VElement where
 }
 
 fn swap_remove_class(attrs: &mut Attributes) -> Option<ClassString> {
-    attrs.0.swap_remove("class").map(|it| ClassString(it))
+    attrs.0.swap_remove("class").map(|it| it.into())
 }
