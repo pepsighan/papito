@@ -59,7 +59,6 @@ mod test {
     use vtext::VText;
     use vnode::VNode;
     use velement::VElement;
-    use vlist::VList;
     use std::borrow::Cow;
 
     #[test]
@@ -198,5 +197,68 @@ mod test {
             ].into()),
             node
         );
+    }
+
+    #[test]
+    fn should_print_html_for_empty_div() {
+        let node = h!("div", _);
+        assert_eq!(node.to_string(), "<div></div>");
+    }
+
+    #[test]
+    fn should_print_html_for_self_closing_br() {
+        let node = h!("br", true);
+        assert_eq!(node.to_string(), "<br>");
+    }
+
+    #[test]
+    fn should_print_html_for_texted_div() {
+        let node = h!("div", h!("Hello World"));
+        assert_eq!(node.to_string(), "<div>Hello World</div>");
+    }
+
+    #[test]
+    fn should_print_html_for_attributed_button() {
+        let node = h!("button", { "class" => "container", "style" => "background-color: black;" }, h!("Click"));
+        assert_eq!(node.to_string(), r#"<button class="container" style="background-color: black;">Click</button>"#)
+    }
+
+    #[test]
+    fn should_print_html_for_nested_spans() {
+        let node = h!("span", h!("span", _));
+        assert_eq!(node.to_string(), "<span><span></span></span>");
+    }
+
+    #[test]
+    fn should_print_html_for_ordered_list() {
+        let node = h!("ol", h!([
+            h!("li", h!("content")),
+            h!("li", h!("content")),
+            h!("li", h!("content")),
+            h!("li", h!("content")),
+        ]));
+        assert_eq!(node.to_string(), "<ol><li>content</li><li>content</li><li>content</li><li>content</li></ol>");
+    }
+
+    #[test]
+    fn should_print_html_for_list_of_text() {
+        let node = h!("div", h!([
+            h!("Hello"),
+            h!("Hello"),
+            h!("Hello"),
+            h!("Hello"),
+        ]));
+        assert_eq!(node.to_string(), "<div>HelloHelloHelloHello</div>");
+    }
+
+    #[test]
+    fn should_print_html_for_plain_list() {
+        let node = h!([
+            h!("div", _),
+            h!("div", _),
+            h!("div", _),
+            h!("div", _),
+        ]);
+        assert_eq!(node.to_string(), "<div></div><div></div><div></div><div></div>");
     }
 }
