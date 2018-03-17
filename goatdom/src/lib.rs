@@ -31,10 +31,10 @@ pub fn h<T: Into<VNode>>(node_like: T) -> VNode {
 
 #[macro_export]
 macro_rules! h {
-    ({$($k:expr => $v:expr),*}) => {
+    ({ $( $k:expr => $v:expr ),* }) => {
         $crate::h($crate::li(vec![ $( ($k, $v) ),* ]))
     };
-    ([$($v:expr),*]) => {
+    ([ $( $v:expr ),* ]) => {
         $crate::h($crate::li(vec![ $( $v ),* ]))
     };
     ($n:expr) => {
@@ -43,7 +43,13 @@ macro_rules! h {
     ($n:expr, _) => {
         $crate::h($crate::el(($n, ())))
     };
-    ($n:expr, $($m:expr),*) => {
+    ($n:expr, { $($k:expr => $v:expr),* }) => {
+        $crate::h($crate::el(($n, vec![ $( ($k, $v) ),* ])))
+    };
+    ($n:expr, { $($k:expr => $v:expr),* }, $( $o:expr ),* ) => {
+        $crate::h($crate::el(($n, vec![ $( ($k, $v) ),* ], $( $o ),*)))
+    };
+    ($n:expr, $( $m:expr ),*) => {
         $crate::h($crate::el(($n, $( $m ),*)))
     };
 }
@@ -127,6 +133,15 @@ mod test {
     #[test]
     fn should_create_velement_with_class() {
         let node = h!("div", vec![("class", "container")]);
+        assert_eq!(
+            VNode::Element(VElement::new("div".into(), Some("container".into()), None, None, false)),
+            node
+        );
+    }
+
+    #[test]
+    fn should_create_velement_with_class_with_alt_syntax() {
+        let node = h!("div", { "class" => "container" });
         assert_eq!(
             VNode::Element(VElement::new("div".into(), Some("container".into()), None, None, false)),
             node
