@@ -36,3 +36,13 @@ impl<T: Into<CowStr>> From<Vec<(T, VNode)>> for VList {
         VList::new(children)
     }
 }
+
+impl From<Vec<VNode>> for VList {
+    fn from(item: Vec<VNode>) -> Self {
+        let children = item.into_iter()
+            .enumerate()
+            .map(|(k, v)| (k.to_string().into(), v))
+            .collect();
+        VList::new(children)
+    }
+}
