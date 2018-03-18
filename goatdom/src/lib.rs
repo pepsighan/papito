@@ -13,6 +13,8 @@ mod vnode;
 mod vtext;
 mod velement;
 mod vlist;
+#[cfg(target_arch = "wasm32")]
+mod vdiff;
 
 pub fn txt<T: Into<VText>>(txt: T) -> VText {
     txt.into()
