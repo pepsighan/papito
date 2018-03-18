@@ -3,7 +3,9 @@ use indexmap::IndexMap;
 use std::fmt::{self, Formatter};
 use std::fmt::Display;
 #[cfg(target_arch = "wasm32")]
-use stdweb::web::Element;
+use stdweb::web::{Element, document, INode, IElement};
+#[cfg(target_arch = "wasm32")]
+use vdiff::{DOMPatch, DOMRemove};
 use vnode::VNode;
 
 #[derive(Debug, Eq, PartialEq)]
@@ -35,20 +37,38 @@ pub struct VElement {
     child: Option<Box<VNode>>,
     is_self_closing: bool,
     #[cfg(target_arch = "wasm32")]
-    dom_ref: Option<Element>
+    dom_ref: Option<Element>,
 }
 
 impl VElement {
     pub fn new(tag: CowStr, class: Option<ClassString>, attrs: Option<Attributes>, child: Option<VNode>, is_self_closing: bool) -> VElement {
         VElement {
+            // TODO: validate tag string first
             tag,
             class,
             attrs,
             child: child.map(|it| Box::new(it)),
             is_self_closing,
             #[cfg(target_arch = "wasm32")]
-            dom_ref: None
+            dom_ref: None,
         }
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn dom_ref(&self) -> Option<&Element> {
+        self.dom_ref.as_ref()
+    }
+
+    fn class(&self) -> Option<&ClassString> {
+        self.class.as_ref()
+    }
+
+    fn attrs(&self) -> Option<&Attributes> {
+        self.attrs.as_ref()
+    }
+
+    fn child(&self) -> Option<&VNode> {
+        self.child.as_ref().map(|it| &**it)
     }
 }
 
@@ -168,4 +188,77 @@ impl<A> From<(A, VNode)> for VElement where
 fn split_into_class_and_attrs(mut attrs: Attributes) -> (Option<ClassString>, Option<Attributes>) {
     let class = attrs.0.swap_remove("class").map(|it| it.into());
     (class, if attrs.0.len() == 0 { None } else { Some(attrs) })
+}
+
+#[cfg(target_arch = "wasm32")]
+impl DOMPatch<VElement> for VElement {
+    fn patch(&mut self, parent: &Element, old_vnode: Option<&VElement>) {
+        if let Some(old_vnode) = old_vnode {
+            let old_el = old_vnode.dom_ref().expect("Older element must have dom_ref");
+            if old_vnode.tag != self.tag {
+                parent.remove_child(old_el).expect("Cannot remove non-existent element");
+                create_new_dom_node(self, parent);
+            } else {
+                let el = old_el.clone();
+                self.class.patch(&el, old_vnode.class());
+                self.attrs.patch(&el, old_vnode.attrs());
+                self.child.patch(&el, old_vnode.child());
+            }
+        } else {
+            create_new_dom_node(self, parent);
+        }
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+impl DOMRemove for VElement {
+    fn remove(&self, parent: &Element) {
+        unimplemented!()
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+fn create_new_dom_node(vel: &mut VElement, parent: &Element) {
+    let el_node = document().create_element(&vel.tag).unwrap();
+    if let Some(ref mut class) = vel.class {
+        class.patch(&el_node, None);
+    }
+    if let Some(ref mut attrs) = vel.attrs {
+        attrs.patch(&el_node, None);
+    }
+    if let Some(ref mut child) = vel.child {
+        child.patch(&el_node, None);
+    }
+    parent.append_child(&el_node);
+    vel.dom_ref = Some(el_node);
+}
+
+#[cfg(target_arch = "wasm32")]
+impl DOMPatch<ClassString> for ClassString {
+    fn patch(&mut self, parent: &Element, old_vnode: Option<&ClassString>) {
+        unimplemented!()
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+impl DOMRemove for ClassString {
+    fn remove(&self, parent: &Element) {
+        parent.remove_attribute("class");
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+impl DOMPatch<Attributes> for Attributes {
+    fn patch(&mut self, parent: &Element, old_vnode: Option<&Attributes>) {
+        unimplemented!()
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+impl DOMRemove for Attributes {
+    fn remove(&self, parent: &Element) {
+        for (k, _) in self.0.iter() {
+            parent.remove_attribute(k);
+        }
+    }
 }
