@@ -59,6 +59,10 @@ impl VElement {
         self.dom_ref.as_ref()
     }
 
+    fn tag(&self) -> &str {
+        &self.tag
+    }
+
     fn class(&self) -> Option<&ClassString> {
         self.class.as_ref()
     }
@@ -194,15 +198,16 @@ fn split_into_class_and_attrs(mut attrs: Attributes) -> (Option<ClassString>, Op
 impl DOMPatch<VElement> for VElement {
     fn patch(&mut self, parent: &Element, old_vnode: Option<&VElement>) {
         if let Some(old_vnode) = old_vnode {
-            let old_el = old_vnode.dom_ref().expect("Older element must have dom_ref");
             if old_vnode.tag != self.tag {
-                parent.remove_child(old_el).expect("Cannot remove non-existent element");
+                old_vnode.remove(parent);
                 create_new_dom_node(self, parent);
             } else {
+                let old_el = old_vnode.dom_ref().expect("Older element must have dom_ref");
                 let el = old_el.clone();
                 self.class.patch(&el, old_vnode.class());
                 self.attrs.patch(&el, old_vnode.attrs());
                 self.child.patch(&el, old_vnode.child());
+                self.dom_ref = Some(el);
             }
         } else {
             create_new_dom_node(self, parent);
@@ -213,7 +218,8 @@ impl DOMPatch<VElement> for VElement {
 #[cfg(target_arch = "wasm32")]
 impl DOMRemove for VElement {
     fn remove(&self, parent: &Element) {
-        unimplemented!()
+        parent.remove_child(self.dom_ref().unwrap())
+            .expect("Cannot remove non-existent element. But should have existed.");
     }
 }
 
