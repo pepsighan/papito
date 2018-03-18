@@ -6,6 +6,7 @@ use stdweb::web::{Element, TextNode, document, INode};
 #[cfg(target_arch = "wasm32")]
 use vdiff::DOMPatch;
 use vnode::VNode;
+use vdiff::DOMRemove;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct VText {
@@ -53,5 +54,13 @@ impl DOMPatch<VText> for VText {
             self.dom_ref = Some(text_node);
             parent.append_child(self.dom_ref().unwrap());
         }
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+impl DOMRemove for VText {
+    fn remove(&self, parent: &Element) {
+        parent.remove_child(self.dom_ref().unwrap())
+            .expect("Cannot remove non-existent text node. But should have existed.")
     }
 }
