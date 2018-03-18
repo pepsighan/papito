@@ -9,6 +9,12 @@ use vnode::VNode;
 #[derive(Debug, Eq, PartialEq)]
 pub struct ClassString(CowStr);
 
+impl ClassString {
+    fn class_str(&self) -> &str {
+        &self.0
+    }
+}
+
 impl Display for ClassString {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, " class=\"{}\"", self.0)
@@ -17,6 +23,12 @@ impl Display for ClassString {
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Attributes(IndexMap<CowStr, CowStr>);
+
+impl Attributes {
+    fn attrs(&self) -> &IndexMap<CowStr, CowStr> {
+        &self.0
+    }
+}
 
 impl Display for Attributes {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
@@ -35,20 +47,42 @@ pub struct VElement {
     child: Option<Box<VNode>>,
     is_self_closing: bool,
     #[cfg(target_arch = "wasm32")]
-    dom_ref: Option<Element>
+    dom_ref: Option<Element>,
 }
 
 impl VElement {
     pub fn new(tag: CowStr, class: Option<ClassString>, attrs: Option<Attributes>, child: Option<VNode>, is_self_closing: bool) -> VElement {
         VElement {
+            // TODO: validate tag string first
             tag,
             class,
             attrs,
             child: child.map(|it| Box::new(it)),
             is_self_closing,
             #[cfg(target_arch = "wasm32")]
-            dom_ref: None
+            dom_ref: None,
         }
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn dom_ref(&self) -> Option<&Element> {
+        self.dom_ref.as_ref()
+    }
+
+    fn tag(&self) -> &str {
+        &self.tag
+    }
+
+    fn class(&self) -> Option<&ClassString> {
+        self.class.as_ref()
+    }
+
+    fn attrs(&self) -> Option<&Attributes> {
+        self.attrs.as_ref()
+    }
+
+    fn child(&self) -> Option<&VNode> {
+        self.child.as_ref().map(|it| &**it)
     }
 }
 
@@ -168,4 +202,92 @@ impl<A> From<(A, VNode)> for VElement where
 fn split_into_class_and_attrs(mut attrs: Attributes) -> (Option<ClassString>, Option<Attributes>) {
     let class = attrs.0.swap_remove("class").map(|it| it.into());
     (class, if attrs.0.len() == 0 { None } else { Some(attrs) })
+}
+
+#[cfg(target_arch = "wasm32")]
+mod wasm {
+    use indexmap::IndexMap;
+    use stdweb::web::{Element, document, INode, IElement};
+    use vdiff::{DOMPatch, DOMRemove, DOMReorder};
+    use super::{VElement, ClassString, Attributes};
+
+    impl DOMPatch<VElement> for VElement {
+        fn patch(&mut self, parent: &Element, old_vnode: Option<&VElement>) {
+            if let Some(old_vnode) = old_vnode {
+                if old_vnode.tag != self.tag {
+                    old_vnode.remove(parent);
+                    create_new_dom_node(self, parent);
+                } else {
+                    let old_el = old_vnode.dom_ref().expect("Older element must have dom_ref");
+                    let el = old_el.clone();
+                    self.class.patch(&el, old_vnode.class());
+                    self.attrs.patch(&el, old_vnode.attrs());
+                    self.child.patch(&el, old_vnode.child());
+                    self.dom_ref = Some(el);
+                }
+            } else {
+                create_new_dom_node(self, parent);
+            }
+        }
+    }
+
+    impl DOMReorder for VElement {
+        fn reorder(&self, parent: &Element) {
+            let dom_ref = self.dom_ref().expect("Cannot re-order previously non-existent element.");
+            parent.append_child(dom_ref);
+        }
+    }
+
+    impl DOMRemove for VElement {
+        fn remove(&self, parent: &Element) {
+            parent.remove_child(self.dom_ref().unwrap())
+                .expect("Cannot remove non-existent element. But should have existed.");
+        }
+    }
+
+    fn create_new_dom_node(vel: &mut VElement, parent: &Element) {
+        let el_node = document().create_element(&vel.tag).unwrap();
+        vel.class.patch(&el_node, None);
+        vel.attrs.patch(&el_node, None);
+        vel.child.patch(&el_node, None);
+        parent.append_child(&el_node);
+        vel.dom_ref = Some(el_node);
+    }
+
+    impl DOMPatch<ClassString> for ClassString {
+        fn patch(&mut self, parent: &Element, _: Option<&ClassString>) {
+            parent.set_attribute("class", self.class_str())
+                .unwrap();
+        }
+    }
+
+    impl DOMRemove for ClassString {
+        fn remove(&self, parent: &Element) {
+            parent.remove_attribute("class");
+        }
+    }
+
+    impl DOMPatch<Attributes> for Attributes {
+        fn patch(&mut self, parent: &Element, old_vnode: Option<&Attributes>) {
+            let mut deleted_attrs = old_vnode.map(|it| it.attrs()
+                .iter()
+                .collect::<IndexMap<_, _>>())
+                .unwrap_or(IndexMap::new());
+            for (k, v) in self.attrs().iter() {
+                parent.set_attribute(&k, &v).unwrap();
+                deleted_attrs.swap_remove(&k);
+            }
+            for (k, _) in deleted_attrs.iter() {
+                parent.remove_attribute(&k);
+            }
+        }
+    }
+
+    impl DOMRemove for Attributes {
+        fn remove(&self, parent: &Element) {
+            for (k, _) in self.0.iter() {
+                parent.remove_attribute(k);
+            }
+        }
+    }
 }
