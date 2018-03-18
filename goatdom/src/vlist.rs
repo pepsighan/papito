@@ -4,7 +4,7 @@ use std::fmt::{Formatter, self};
 use indexmap::IndexMap;
 use CowStr;
 #[cfg(target_arch = "wasm32")]
-use vdiff::DOMPatch;
+use vdiff::{DOMPatch, DOMRemove};
 #[cfg(target_arch = "wasm32")]
 use stdweb::web::Element;
 
@@ -55,5 +55,14 @@ impl From<Vec<VNode>> for VList {
 impl DOMPatch<VList> for VList {
     fn patch(&mut self, parent: &Element, old_vnode: Option<&VList>) {
         unimplemented!()
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+impl DOMRemove for VList {
+    fn remove(&self, parent: &Element) {
+        for (_, child) in self.children.iter() {
+            child.remove(parent);
+        }
     }
 }
