@@ -11,6 +11,12 @@ use vnode::VNode;
 #[derive(Debug, Eq, PartialEq)]
 pub struct ClassString(CowStr);
 
+impl ClassString {
+    fn class_str(&self) -> &str {
+        &self.0
+    }
+}
+
 impl Display for ClassString {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, " class=\"{}\"", self.0)
@@ -19,6 +25,12 @@ impl Display for ClassString {
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Attributes(IndexMap<CowStr, CowStr>);
+
+impl Attributes {
+    fn attrs(&self) -> &IndexMap<CowStr, CowStr> {
+        &self.0
+    }
+}
 
 impl Display for Attributes {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
@@ -236,7 +248,8 @@ fn create_new_dom_node(vel: &mut VElement, parent: &Element) {
 #[cfg(target_arch = "wasm32")]
 impl DOMPatch<ClassString> for ClassString {
     fn patch(&mut self, parent: &Element, old_vnode: Option<&ClassString>) {
-        unimplemented!()
+        parent.set_attribute("class", self.class_str())
+            .unwrap();
     }
 }
 
@@ -250,7 +263,17 @@ impl DOMRemove for ClassString {
 #[cfg(target_arch = "wasm32")]
 impl DOMPatch<Attributes> for Attributes {
     fn patch(&mut self, parent: &Element, old_vnode: Option<&Attributes>) {
-        unimplemented!()
+        let mut deleted_attrs = old_vnode.map(|it| it.attrs()
+            .iter()
+            .collect::<IndexMap<_, _>>())
+            .unwrap_or(IndexMap::new());
+        for (k, v) in self.attrs().iter() {
+            parent.set_attribute(&k, &v).unwrap();
+            deleted_attrs.swap_remove(&k);
+        }
+        for (k, _) in deleted_attrs.iter() {
+            parent.remove_attribute(&k);
+        }
     }
 }
 
