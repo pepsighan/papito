@@ -1,4 +1,5 @@
 extern crate indexmap;
+extern crate stdweb;
 
 use std::borrow::Cow;
 use vnode::VNode;

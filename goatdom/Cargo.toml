@@ -5,3 +5,4 @@ authors = ["Sharad Chand <sharad.d.chand@gmail.com>"]
 
 [dependencies]
 indexmap = "1.0.0"
+stdweb = "0.4.2"

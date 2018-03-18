@@ -1,8 +1,10 @@
 use CowStr;
 use indexmap::IndexMap;
-use vnode::VNode;
+use std::fmt::{self, Formatter};
 use std::fmt::Display;
-use std::fmt::{Formatter, self};
+#[cfg(target_arch = "wasm32")]
+use stdweb::web::Element;
+use vnode::VNode;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct ClassString(CowStr);
@@ -32,6 +34,8 @@ pub struct VElement {
     attrs: Option<Attributes>,
     child: Option<Box<VNode>>,
     is_self_closing: bool,
+    #[cfg(target_arch = "wasm32")]
+    dom_ref: Option<Element>
 }
 
 impl VElement {
@@ -42,6 +46,8 @@ impl VElement {
             attrs,
             child: child.map(|it| Box::new(it)),
             is_self_closing,
+            #[cfg(target_arch = "wasm32")]
+            dom_ref: None
         }
     }
 }
