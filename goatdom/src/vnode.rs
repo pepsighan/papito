@@ -86,7 +86,7 @@ impl DOMReorder for VNode {
         match *self {
             VNode::Text(ref text) => text.reorder(parent),
             VNode::Element(ref element) => element.reorder(parent),
-            _ => {}
+            VNode::List(ref list) => list.reorder(parent)
         }
     }
 }

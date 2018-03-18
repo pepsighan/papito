@@ -86,3 +86,12 @@ impl DOMRemove for VList {
         }
     }
 }
+
+#[cfg(target_arch = "wasm32")]
+impl DOMReorder for VList {
+    fn reorder(&self, parent: &Element) {
+        for (_, v) in self.children.iter() {
+            v.reorder(parent);
+        }
+    }
+}
