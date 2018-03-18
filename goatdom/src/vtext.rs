@@ -61,6 +61,6 @@ impl DOMPatch<VText> for VText {
 impl DOMRemove for VText {
     fn remove(&self, parent: &Element) {
         parent.remove_child(self.dom_ref().unwrap())
-            .expect("Cannot remove non-existent text node. But should have existed.")
+            .expect("Cannot remove non-existent text node. But should have existed.");
     }
 }
