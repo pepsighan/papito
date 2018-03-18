@@ -3,6 +3,10 @@ use std::fmt::Display;
 use std::fmt::{Formatter, self};
 use indexmap::IndexMap;
 use CowStr;
+#[cfg(target_arch = "wasm32")]
+use vdiff::DOMPatch;
+#[cfg(target_arch = "wasm32")]
+use stdweb::web::Element;
 
 type Key = CowStr;
 
@@ -44,5 +48,12 @@ impl From<Vec<VNode>> for VList {
             .map(|(k, v)| (k.to_string().into(), v))
             .collect();
         VList::new(children)
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+impl DOMPatch<VList> for VList {
+    fn patch(&mut self, parent: &Element, old_vnode: Option<&VList>) {
+        unimplemented!()
     }
 }

@@ -4,7 +4,7 @@ use std::fmt::Display;
 #[cfg(target_arch = "wasm32")]
 use stdweb::web::{Element, TextNode, document, INode};
 #[cfg(target_arch = "wasm32")]
-use vdiff::VDiff;
+use vdiff::DOMPatch;
 use vnode::VNode;
 
 #[derive(Debug, Eq, PartialEq)]
@@ -42,10 +42,8 @@ impl<T: Into<CowStr>> From<T> for VText {
 }
 
 #[cfg(target_arch = "wasm32")]
-impl VDiff for VText {
-    type VNodeLike = VText;
-
-    fn apply(&mut self, parent: &Element, old_vnode: Option<&VText>) {
+impl DOMPatch<VText> for VText {
+    fn patch(&mut self, parent: &Element, old_vnode: Option<&VText>) {
         if let Some(old_vnode) = old_vnode {
             let text_node = old_vnode.dom_ref().unwrap().clone();
             text_node.set_text_content(&self.content);

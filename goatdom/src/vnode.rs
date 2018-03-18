@@ -3,12 +3,16 @@ use vlist::VList;
 use vtext::VText;
 use std::fmt::Display;
 use std::fmt::{Formatter, self};
+#[cfg(target_arch = "wasm32")]
+use vdiff::{DOMPatch, DOMRemove};
+#[cfg(target_arch = "wasm32")]
+use stdweb::web::Element;
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum VNode {
     Text(VText),
     Element(VElement),
-    List(VList)
+    List(VList),
 }
 
 impl VNode {
@@ -40,3 +44,17 @@ macro_rules! impl_conversion_to_vnode {
 impl_conversion_to_vnode!(Text, VText);
 impl_conversion_to_vnode!(Element, VElement);
 impl_conversion_to_vnode!(List, VList);
+
+#[cfg(target_arch = "wasm32")]
+impl DOMPatch<VNode> for VNode {
+    fn patch(&mut self, parent: &Element, old_vnode: Option<&VNode>) {
+        unimplemented!()
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+impl DOMRemove for VNode {
+    fn remove(&self, parent: &Element) {
+        unimplemented!()
+    }
+}
