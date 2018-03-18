@@ -14,14 +14,6 @@ version = "0.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "goatdom"
-version = "0.1.0"
-dependencies = [
- "indexmap 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "stdweb 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "indexmap"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -35,6 +27,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "num-traits"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "papito_dom"
+version = "0.1.0"
+dependencies = [
+ "indexmap 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "stdweb 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "proc-macro2"
