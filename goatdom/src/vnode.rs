@@ -4,7 +4,7 @@ use vtext::VText;
 use std::fmt::Display;
 use std::fmt::{Formatter, self};
 #[cfg(target_arch = "wasm32")]
-use vdiff::{DOMPatch, DOMRemove};
+use vdiff::{DOMPatch, DOMRemove, DOMReorder};
 #[cfg(target_arch = "wasm32")]
 use stdweb::web::Element;
 
@@ -76,6 +76,17 @@ impl DOMRemove for VNode {
             VNode::Text(ref text) => text.remove(parent),
             VNode::Element(ref element) => element.remove(parent),
             VNode::List(ref list) => list.remove(parent)
+        }
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+impl DOMReorder for VNode {
+    fn reorder(&self, parent: &Element) {
+        match *self {
+            VNode::Text(ref text) => text.reorder(parent),
+            VNode::Element(ref element) => element.reorder(parent),
+            _ => {}
         }
     }
 }

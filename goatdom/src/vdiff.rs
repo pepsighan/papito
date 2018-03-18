@@ -9,6 +9,10 @@ pub trait DOMRemove {
     fn remove(&self, parent: &Element);
 }
 
+pub trait DOMReorder {
+    fn reorder(&self, parent: &Element);
+}
+
 impl<T, Q> DOMPatch<T> for Option<Q> where
     Q: DOMPatch<T>,
     T: DOMRemove {

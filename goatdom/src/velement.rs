@@ -5,7 +5,7 @@ use std::fmt::Display;
 #[cfg(target_arch = "wasm32")]
 use stdweb::web::{Element, document, INode, IElement};
 #[cfg(target_arch = "wasm32")]
-use vdiff::{DOMPatch, DOMRemove};
+use vdiff::{DOMPatch, DOMRemove, DOMReorder};
 use vnode::VNode;
 
 #[derive(Debug, Eq, PartialEq)]
@@ -224,6 +224,14 @@ impl DOMPatch<VElement> for VElement {
         } else {
             create_new_dom_node(self, parent);
         }
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+impl DOMReorder for VElement {
+    fn reorder(&self, parent: &Element) {
+        let dom_ref = self.dom_ref().expect("Cannot re-order previously non-existent element.");
+        parent.append_child(dom_ref);
     }
 }
 

@@ -4,9 +4,8 @@ use std::fmt::Display;
 #[cfg(target_arch = "wasm32")]
 use stdweb::web::{Element, TextNode, document, INode};
 #[cfg(target_arch = "wasm32")]
-use vdiff::DOMPatch;
+use vdiff::{DOMPatch, DOMReorder, DOMRemove};
 use vnode::VNode;
-use vdiff::DOMRemove;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct VText {
@@ -54,6 +53,14 @@ impl DOMPatch<VText> for VText {
             self.dom_ref = Some(text_node);
             parent.append_child(self.dom_ref().unwrap());
         }
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+impl DOMReorder for VText {
+    fn reorder(&self, parent: &Element) {
+        let dom_ref = self.dom_ref().expect("Cannot re-order previously non-existent text node.");
+        parent.append_child(dom_ref);
     }
 }
 
