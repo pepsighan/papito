@@ -55,6 +55,10 @@ impl DOMPatch<VNode> for VNode {
 #[cfg(target_arch = "wasm32")]
 impl DOMRemove for VNode {
     fn remove(&self, parent: &Element) {
-        unimplemented!()
+        match *self {
+            VNode::Text(text) => text.remove(parent),
+            VNode::Element(element) => element.remove(parent),
+            VNode::List(list) => list.remove(parent)
+        }
     }
 }
