@@ -2,7 +2,7 @@ use CowStr;
 use std::fmt::{self, Formatter};
 use std::fmt::Display;
 #[cfg(target_arch = "wasm32")]
-use stdweb::web::{Element, TextNode, document};
+use stdweb::web::{Element, TextNode, document, INode};
 #[cfg(target_arch = "wasm32")]
 use vdiff::VDiff;
 use vnode::VNode;
