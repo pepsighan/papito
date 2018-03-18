@@ -220,15 +220,9 @@ impl DOMRemove for VElement {
 #[cfg(target_arch = "wasm32")]
 fn create_new_dom_node(vel: &mut VElement, parent: &Element) {
     let el_node = document().create_element(&vel.tag).unwrap();
-    if let Some(ref mut class) = vel.class {
-        class.patch(&el_node, None);
-    }
-    if let Some(ref mut attrs) = vel.attrs {
-        attrs.patch(&el_node, None);
-    }
-    if let Some(ref mut child) = vel.child {
-        child.patch(&el_node, None);
-    }
+    vel.class.patch(&el_node, None);
+    vel.attrs.patch(&el_node, None);
+    vel.child.patch(&el_node, None);
     parent.append_child(&el_node);
     vel.dom_ref = Some(el_node);
 }
