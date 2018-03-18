@@ -34,24 +34,31 @@ pub fn h<T: Into<VNode>>(node_like: T) -> VNode {
 
 #[macro_export]
 macro_rules! h {
+    // Creates keyed vnodes
     ({ $( $k:expr => $v:expr ),* $(,)* }) => {
         $crate::h($crate::li(vec![ $( ($k, $v) ),* ]))
     };
+    // Creates default-keyed vnodes
     ([ $( $v:expr ),* $(,)* ]) => {
         $crate::h($crate::li(vec![ $( $v ),* ]))
     };
+    // Creates text vnode
     ($n:expr) => {
         $crate::h($crate::txt($n))
     };
+    // Creates an empty element
     ($n:expr, _) => {
         $crate::h($crate::el(($n, ())))
     };
+    // Creates an element with map based attributes
     ($n:expr, { $($k:expr => $v:expr),* $(,)* }) => {
         $crate::h($crate::el(($n, vec![ $( ($k, $v) ),* ])))
     };
+    // Creates an element with map based attributes along with other arguments
     ($n:expr, { $($k:expr => $v:expr),* }, $( $o:expr ),* $(,)* ) => {
         $crate::h($crate::el(($n, vec![ $( ($k, $v) ),* ], $( $o ),*)))
     };
+    // Creates an element with plain arguments
     ($n:expr, $( $m:expr ),* $(,)*) => {
         $crate::h($crate::el(($n, $( $m ),*)))
     };
