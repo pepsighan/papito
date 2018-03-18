@@ -1,5 +1,4 @@
 use stdweb::web::Element;
-use vnode::VNode;
 
 /// Required to update the DOM on the `parent` node. It is also tasked with Diffing along
 /// as it creates patches.

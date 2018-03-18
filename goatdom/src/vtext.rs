@@ -2,10 +2,7 @@ use CowStr;
 use std::fmt::{self, Formatter};
 use std::fmt::Display;
 #[cfg(target_arch = "wasm32")]
-use stdweb::web::{Element, TextNode, document, INode};
-#[cfg(target_arch = "wasm32")]
-use vdiff::{DOMPatch, DOMReorder, DOMRemove};
-use vnode::VNode;
+use stdweb::web::TextNode;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct VText {
@@ -42,32 +39,36 @@ impl<T: Into<CowStr>> From<T> for VText {
 }
 
 #[cfg(target_arch = "wasm32")]
-impl DOMPatch<VText> for VText {
-    fn patch(&mut self, parent: &Element, old_vnode: Option<&VText>) {
-        if let Some(old_vnode) = old_vnode {
-            let text_node = old_vnode.dom_ref().unwrap().clone();
-            text_node.set_text_content(&self.content);
-            self.dom_ref = Some(text_node);
-        } else {
-            let text_node = document().create_text_node(&self.content);
-            self.dom_ref = Some(text_node);
-            parent.append_child(self.dom_ref().unwrap());
+mod wasm {
+    use stdweb::web::{Element, document, INode};
+    use vdiff::{DOMPatch, DOMReorder, DOMRemove};
+    use super::VText;
+
+    impl DOMPatch<VText> for VText {
+        fn patch(&mut self, parent: &Element, old_vnode: Option<&VText>) {
+            if let Some(old_vnode) = old_vnode {
+                let text_node = old_vnode.dom_ref().unwrap().clone();
+                text_node.set_text_content(&self.content);
+                self.dom_ref = Some(text_node);
+            } else {
+                let text_node = document().create_text_node(&self.content);
+                self.dom_ref = Some(text_node);
+                parent.append_child(self.dom_ref().unwrap());
+            }
         }
     }
-}
 
-#[cfg(target_arch = "wasm32")]
-impl DOMReorder for VText {
-    fn reorder(&self, parent: &Element) {
-        let dom_ref = self.dom_ref().expect("Cannot re-order previously non-existent text node.");
-        parent.append_child(dom_ref);
+    impl DOMReorder for VText {
+        fn reorder(&self, parent: &Element) {
+            let dom_ref = self.dom_ref().expect("Cannot re-order previously non-existent text node.");
+            parent.append_child(dom_ref);
+        }
     }
-}
 
-#[cfg(target_arch = "wasm32")]
-impl DOMRemove for VText {
-    fn remove(&self, parent: &Element) {
-        parent.remove_child(self.dom_ref().unwrap())
-            .expect("Cannot remove non-existent text node. But should have existed.");
+    impl DOMRemove for VText {
+        fn remove(&self, parent: &Element) {
+            parent.remove_child(self.dom_ref().unwrap())
+                .expect("Cannot remove non-existent text node. But should have existed.");
+        }
     }
 }

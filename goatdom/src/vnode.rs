@@ -3,10 +3,6 @@ use vlist::VList;
 use vtext::VText;
 use std::fmt::Display;
 use std::fmt::{Formatter, self};
-#[cfg(target_arch = "wasm32")]
-use vdiff::{DOMPatch, DOMRemove, DOMReorder};
-#[cfg(target_arch = "wasm32")]
-use stdweb::web::Element;
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum VNode {
@@ -45,48 +41,52 @@ impl_conversion_to_vnode!(Text, VText);
 impl_conversion_to_vnode!(Element, VElement);
 impl_conversion_to_vnode!(List, VList);
 
-macro_rules! match_for_vnode_patch {
-    ($against:ident, $parent:ident, $old_vnode:ident, [$( $variant:ident ),*] ) => {
-        match *$against {
-            $(
-                VNode::$variant(ref mut node_like) => {
-                    if let Some(&VNode::$variant(ref old_node_like)) = $old_vnode {
-                        node_like.patch($parent, Some(old_node_like));
-                    } else {
-                        $old_vnode.remove($parent);
-                        node_like.patch($parent, None);
+#[cfg(target_arch = "wasm32")]
+mod wasm {
+    use vdiff::{DOMPatch, DOMRemove, DOMReorder};
+    use stdweb::web::Element;
+    use super::VNode;
+
+    macro_rules! match_for_vnode_patch {
+        ($against:ident, $parent:ident, $old_vnode:ident, [$( $variant:ident ),*] ) => {
+            match *$against {
+                $(
+                    VNode::$variant(ref mut node_like) => {
+                        if let Some(&VNode::$variant(ref old_node_like)) = $old_vnode {
+                            node_like.patch($parent, Some(old_node_like));
+                        } else {
+                            $old_vnode.remove($parent);
+                            node_like.patch($parent, None);
+                        }
                     }
-                }
-            )*
-        }
-    };
-}
-
-#[cfg(target_arch = "wasm32")]
-impl DOMPatch<VNode> for VNode {
-    fn patch(&mut self, parent: &Element, old_vnode: Option<&VNode>) {
-        match_for_vnode_patch!(self, parent, old_vnode, [Text, Element, List]);
+                )*
+            }
+        };
     }
-}
 
-#[cfg(target_arch = "wasm32")]
-impl DOMRemove for VNode {
-    fn remove(&self, parent: &Element) {
-        match *self {
-            VNode::Text(ref text) => text.remove(parent),
-            VNode::Element(ref element) => element.remove(parent),
-            VNode::List(ref list) => list.remove(parent)
+    impl DOMPatch<VNode> for VNode {
+        fn patch(&mut self, parent: &Element, old_vnode: Option<&VNode>) {
+            match_for_vnode_patch!(self, parent, old_vnode, [Text, Element, List]);
         }
     }
-}
 
-#[cfg(target_arch = "wasm32")]
-impl DOMReorder for VNode {
-    fn reorder(&self, parent: &Element) {
-        match *self {
-            VNode::Text(ref text) => text.reorder(parent),
-            VNode::Element(ref element) => element.reorder(parent),
-            VNode::List(ref list) => list.reorder(parent)
+    impl DOMRemove for VNode {
+        fn remove(&self, parent: &Element) {
+            match *self {
+                VNode::Text(ref text) => text.remove(parent),
+                VNode::Element(ref element) => element.remove(parent),
+                VNode::List(ref list) => list.remove(parent)
+            }
+        }
+    }
+
+    impl DOMReorder for VNode {
+        fn reorder(&self, parent: &Element) {
+            match *self {
+                VNode::Text(ref text) => text.reorder(parent),
+                VNode::Element(ref element) => element.reorder(parent),
+                VNode::List(ref list) => list.reorder(parent)
+            }
         }
     }
 }
