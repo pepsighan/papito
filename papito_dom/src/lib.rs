@@ -66,16 +66,24 @@ macro_rules! h {
     ($n:expr, { $($k:expr => $v:expr),* $(,)* } $(,)*) => {
         $crate::h($crate::el(($n, vec![ $( ($k, $v) ),* ])))
     };
+    // Creates an element with event handlers
+    ($n:expr, [ $( $ev:expr ),* $(,)* ] $(,)*) => {{
+        let mut el = $crate::el(($n, ()));
+        #[cfg(target_arch = "wasm32")]
+        el.set_events(vec![ $( $crate::ev( $ev ) ),* ]);
+        $crate::h(el)
+    }};
     // Creates an element with map based attributes and event handlers
     ($n:expr, { $($k:expr => $v:expr),* $(,)* }, [ $( $ev:expr ),* $(,)* ] $(,)*) => {{
         let mut el = $crate::el(($n, vec![ $( ($k, $v) ),* ]));
-//        #[cfg(target_arch = "wasm32")]
+        #[cfg(target_arch = "wasm32")]
         el.set_events(vec![ $( $crate::ev( $ev ) ),* ]);
         $crate::h(el)
     }};
     // Creates an element with map based attributes, event handlers and other arguments
     ($n:expr, { $($k:expr => $v:expr),* $(,)* }, [ $( $ev:expr ),* $(,)* ], $( $o:expr ),* $(,)*) => {{
         let mut el = $crate::el(($n, vec![ $( ($k, $v) ),* ], $( $o ),*));
+        #[cfg(target_arch = "wasm32")]
         el.set_events(vec![ $( $crate::ev( $ev ) ),* ]);
         $crate::h(el)
     }};
@@ -83,15 +91,17 @@ macro_rules! h {
     ($n:expr, { $($k:expr => $v:expr),* $(,)* }, $( $o:expr ),* $(,)*) => {
         $crate::h($crate::el(($n, vec![ $( ($k, $v) ),* ], $( $o ),*)))
     };
-    // Creates an element with plain arguments and event handlers
-    ($n:expr, $s:expr, [ $( $ev:expr ),* $(,)* ], $( $m:expr ),* $(,)*) => {{
-        let mut el = $crate::el(($n, $s, $( $m ),*));
+    // Creates an element with plain arguments, except attributes (not strictly), and event handlers
+    ($n:expr, [ $( $ev:expr ),* $(,)* ], $( $m:expr ),* $(,)*) => {{
+        let mut el = $crate::el(($n, $( $m ),*));
+        #[cfg(target_arch = "wasm32")]
         el.set_events(vec![ $( $crate::ev( $ev ) ),* ]);
         $crate::h(el)
     }};
-    // Creates an element with plain arguments, except attributes, and event handlers
-    ($n:expr, [ $( $ev:expr ),* $(,)* ], $( $m:expr ),* $(,)*) => {{
-        let mut el = $crate::el(($n, $( $m ),*));
+    // Creates an element with plain arguments and event handlers
+    ($n:expr, $s:expr, [ $( $ev:expr ),* $(,)* ], $( $m:expr ),* $(,)*) => {{
+        let mut el = $crate::el(($n, $s, $( $m ),*));
+        #[cfg(target_arch = "wasm32")]
         el.set_events(vec![ $( $crate::ev( $ev ) ),* ]);
         $crate::h(el)
     }};
@@ -107,6 +117,8 @@ mod test {
     use vnode::VNode;
     use velement::VElement;
     use std::borrow::Cow;
+    #[cfg(target_arch = "wasm32")]
+    use stdweb::web::event::InputEvent;
 
     #[test]
     fn should_create_text_vnode() {
@@ -244,6 +256,11 @@ mod test {
             ].into()),
             node
         );
+    }
+
+    #[test]
+    fn should_create_empty_input_with_events() {
+        let node = h!("input", [ |_: InputEvent| {}]);
     }
 
     #[test]
