@@ -111,7 +111,7 @@ impl Debug for DOMEvent {
 // Implemented because of the requirements on VElement. Could not compare two closures
 // so a simple pass through `true`.
 impl PartialEq for DOMEvent {
-    fn eq(&self, other: &DOMEvent) -> bool {
+    fn eq(&self, _: &DOMEvent) -> bool {
         true
     }
 }

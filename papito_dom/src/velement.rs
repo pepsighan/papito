@@ -203,9 +203,9 @@ mod wasm {
                 } else {
                     let old_el = old_vnode.dom_ref().expect("Older element must have dom_ref");
                     let el = old_el.clone();
-                    self.class.patch(&el, old_vnode.class());
-                    self.attrs.patch(&el, old_vnode.attrs());
-                    self.child.patch(&el, old_vnode.child());
+                    self.class.patch(&el, old_vnode.class.as_ref());
+                    self.attrs.patch(&el, old_vnode.attrs.as_ref());
+                    self.child.patch(&el, old_vnode.child.as_ref().map(|it| &**it));
                     self.dom_ref = Some(el);
                 }
             } else {
@@ -239,7 +239,7 @@ mod wasm {
 
     impl DOMPatch<ClassString> for ClassString {
         fn patch(&mut self, parent: &Element, _: Option<&ClassString>) {
-            parent.set_attribute("class", self.class_str())
+            parent.set_attribute("class", &self.0)
                 .unwrap();
         }
     }
@@ -252,11 +252,11 @@ mod wasm {
 
     impl DOMPatch<Attributes> for Attributes {
         fn patch(&mut self, parent: &Element, old_vnode: Option<&Attributes>) {
-            let mut deleted_attrs = old_vnode.map(|it| it.attrs()
+            let mut deleted_attrs = old_vnode.map(|it| it.0
                 .iter()
                 .collect::<IndexMap<_, _>>())
                 .unwrap_or(IndexMap::new());
-            for (k, v) in self.attrs().iter() {
+            for (k, v) in self.0.iter() {
                 parent.set_attribute(&k, &v).unwrap();
                 deleted_attrs.swap_remove(&k);
             }
