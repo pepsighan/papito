@@ -6,7 +6,7 @@ use CowStr;
 
 type Key = CowStr;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug)]
 pub struct VList {
     children: IndexMap<Key, VNode>
 }

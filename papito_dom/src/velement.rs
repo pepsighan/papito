@@ -8,7 +8,7 @@ use stdweb::web::Element;
 use events::DOMEvent;
 use vnode::VNode;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug)]
 pub struct ClassString(CowStr);
 
 impl ClassString {
@@ -23,7 +23,7 @@ impl Display for ClassString {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug)]
 pub struct Attributes(IndexMap<CowStr, CowStr>);
 
 impl Attributes {
@@ -41,7 +41,7 @@ impl Display for Attributes {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug)]
 pub struct VElement {
     tag: CowStr,
     class: Option<ClassString>,

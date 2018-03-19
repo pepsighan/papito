@@ -4,7 +4,7 @@ use vtext::VText;
 use std::fmt::Display;
 use std::fmt::{Formatter, self};
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug)]
 pub enum VNode {
     Text(VText),
     Element(VElement),
