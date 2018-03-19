@@ -6,6 +6,8 @@ use vnode::VNode;
 use vtext::VText;
 use velement::VElement;
 use vlist::VList;
+#[cfg(target_arch = "wasm32")]
+use stdweb::web::event::ConcreteEvent;
 
 type CowStr = Cow<'static, str>;
 
@@ -34,6 +36,14 @@ pub fn h<T: Into<VNode>>(node_like: T) -> VNode {
     node_like.into()
 }
 
+#[cfg(target_arch = "wasm32")]
+pub fn ev<E, T, F>(listener: E) -> events::DOMEventListener<T, F> where
+    E: Into<events::DOMEventListener<T, F>>,
+    F: FnMut(T),
+    T: ConcreteEvent {
+    listener.into()
+}
+
 #[macro_export]
 macro_rules! h {
     // Creates keyed vnodes
@@ -56,10 +66,35 @@ macro_rules! h {
     ($n:expr, { $($k:expr => $v:expr),* $(,)* } $(,)*) => {
         $crate::h($crate::el(($n, vec![ $( ($k, $v) ),* ])))
     };
+    // Creates an element with map based attributes and event handlers
+    ($n:expr, { $($k:expr => $v:expr),* $(,)* }, [ $( $ev:expr ),* $(,)* ] $(,)*) => {{
+        let mut el = $crate::el(($n, vec![ $( ($k, $v) ),* ]));
+//        #[cfg(target_arch = "wasm32")]
+        el.set_events(vec![ $( $crate::ev( $ev ) ),* ]);
+        $crate::h(el)
+    }};
+    // Creates an element with map based attributes, event handlers and other arguments
+    ($n:expr, { $($k:expr => $v:expr),* $(,)* }, [ $( $ev:expr ),* $(,)* ], $( $o:expr ),* $(,)*) => {{
+        let mut el = $crate::el(($n, vec![ $( ($k, $v) ),* ], $( $o ),*));
+        el.set_events(vec![ $( $crate::ev( $ev ) ),* ]);
+        $crate::h(el)
+    }};
     // Creates an element with map based attributes along with other arguments
-    ($n:expr, { $($k:expr => $v:expr),* $(,)* }, $( $o:expr ),* $(,)* ) => {
+    ($n:expr, { $($k:expr => $v:expr),* $(,)* }, $( $o:expr ),* $(,)*) => {
         $crate::h($crate::el(($n, vec![ $( ($k, $v) ),* ], $( $o ),*)))
     };
+    // Creates an element with plain arguments and event handlers
+    ($n:expr, $s:expr, [ $( $ev:expr ),* $(,)* ], $( $m:expr ),* $(,)*) => {{
+        let mut el = $crate::el(($n, $s, $( $m ),*));
+        el.set_events(vec![ $( $crate::ev( $ev ) ),* ]);
+        $crate::h(el)
+    }};
+    // Creates an element with plain arguments, except attributes, and event handlers
+    ($n:expr, [ $( $ev:expr ),* $(,)* ], $( $m:expr ),* $(,)*) => {{
+        let mut el = $crate::el(($n, $( $m ),*));
+        el.set_events(vec![ $( $crate::ev( $ev ) ),* ]);
+        $crate::h(el)
+    }};
     // Creates an element with plain arguments
     ($n:expr, $( $m:expr ),* $(,)*) => {
         $crate::h($crate::el(($n, $( $m ),*)))
