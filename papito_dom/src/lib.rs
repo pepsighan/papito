@@ -37,11 +37,11 @@ pub fn h<T: Into<VNode>>(node_like: T) -> VNode {
 }
 
 #[cfg(target_arch = "wasm32")]
-pub fn ev<E, T, F>(listener: E) -> events::DOMEventListener<T, F> where
+pub fn ev<E, T, F>(listener: E) -> Box<events::DOMEvent> where
     E: Into<events::DOMEventListener<T, F>>,
-    F: FnMut(T),
-    T: ConcreteEvent {
-    listener.into()
+    F: FnMut(T) + 'static,
+    T: ConcreteEvent + 'static {
+    Box::new(listener.into())
 }
 
 #[macro_export]
