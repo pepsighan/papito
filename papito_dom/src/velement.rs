@@ -11,12 +11,6 @@ use vnode::VNode;
 #[derive(Debug)]
 pub struct ClassString(CowStr);
 
-impl ClassString {
-    fn class_str(&self) -> &str {
-        &self.0
-    }
-}
-
 impl Display for ClassString {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, " class=\"{}\"", self.0)
@@ -25,12 +19,6 @@ impl Display for ClassString {
 
 #[derive(Debug)]
 pub struct Attributes(IndexMap<CowStr, CowStr>);
-
-impl Attributes {
-    fn attrs(&self) -> &IndexMap<CowStr, CowStr> {
-        &self.0
-    }
-}
 
 impl Display for Attributes {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
@@ -78,22 +66,6 @@ impl VElement {
     #[cfg(target_arch = "wasm32")]
     pub fn set_events(&mut self, events: Vec<Box<DOMEvent>>) {
         self.events = Some(events);
-    }
-
-    fn tag(&self) -> &str {
-        &self.tag
-    }
-
-    fn class(&self) -> Option<&ClassString> {
-        self.class.as_ref()
-    }
-
-    fn attrs(&self) -> Option<&Attributes> {
-        self.attrs.as_ref()
-    }
-
-    fn child(&self) -> Option<&VNode> {
-        self.child.as_ref().map(|it| &**it)
     }
 }
 
