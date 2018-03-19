@@ -232,7 +232,7 @@ mod wasm {
             // Dismember the events
             self.events.remove(parent);
             // Remove child and their events
-            self.child.remove(parent);
+            self.child.as_mut().map(|it| &mut **it).remove(parent);
             // Lastly remove self
             parent.remove_child(&self.dom_ref.take()
                 .expect("Cannot remove non-existent element.")
