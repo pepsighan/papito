@@ -45,19 +45,19 @@ macro_rules! h {
         $crate::h($crate::li(vec![ $( $v ),* ]))
     };
     // Creates text vnode
-    ($n:expr) => {
+    ($n:expr $(,)*) => {
         $crate::h($crate::txt($n))
     };
     // Creates an empty element
-    ($n:expr, _) => {
+    ($n:expr, _ $(,)*) => {
         $crate::h($crate::el(($n, ())))
     };
     // Creates an element with map based attributes
-    ($n:expr, { $($k:expr => $v:expr),* $(,)* }) => {
+    ($n:expr, { $($k:expr => $v:expr),* $(,)* } $(,)*) => {
         $crate::h($crate::el(($n, vec![ $( ($k, $v) ),* ])))
     };
     // Creates an element with map based attributes along with other arguments
-    ($n:expr, { $($k:expr => $v:expr),* }, $( $o:expr ),* $(,)* ) => {
+    ($n:expr, { $($k:expr => $v:expr),* $(,)* }, $( $o:expr ),* $(,)* ) => {
         $crate::h($crate::el(($n, vec![ $( ($k, $v) ),* ], $( $o ),*)))
     };
     // Creates an element with plain arguments
