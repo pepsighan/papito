@@ -259,8 +259,57 @@ mod test {
     }
 
     #[test]
-    fn should_create_empty_input_with_events() {
-        let node = h!("input", [ |_: InputEvent| {}]);
+    fn should_create_empty_input_with_event() {
+        let node = h!("input", [ |_: InputEvent| {} ]);
+        assert_eq!(
+            VNode::Element(VElement::new("input".into(), None, None, None, false)),
+            node
+        );
+    }
+
+    #[test]
+    fn should_create_empty_input_with_attribute_and_event() {
+        let node = h!("input", { "disabled" => "true" }, [ |_: InputEvent| {} ]);
+        assert_eq!(
+            VNode::Element(VElement::new(
+                "input".into(),
+                None,
+                Some(vec![("disabled", "true")].into()),
+                None,
+                false)
+            ),
+            node
+        );
+    }
+
+    #[test]
+    fn should_create_texted_div_with_attribute_and_event() {
+        let node = h!("div", { "style" => "color: white;" }, [ |_: InputEvent| {} ], h!("Hello"));
+        assert_eq!(
+            VNode::Element(VElement::new(
+                "div".into(),
+                None,
+                Some(vec![("style", "color: white;")].into()),
+                Some(VNode::Text(VText::new("Hello".into()))),
+                false)
+            ),
+            node
+        );
+    }
+
+    #[test]
+    fn should_create_texted_div_with_event() {
+        let node = h!("div", [ |_: InputEvent| {} ], h!("Hello"));
+        assert_eq!(
+            VNode::Element(VElement::new(
+                "div".into(),
+                None,
+                None,
+                Some(VNode::Text(VText::new("Hello".into()))),
+                false)
+            ),
+            node
+        );
     }
 
     #[test]
