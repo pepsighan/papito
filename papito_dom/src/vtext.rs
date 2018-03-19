@@ -48,7 +48,9 @@ mod wasm {
         fn patch(&mut self, parent: &Element, old_vnode: Option<&mut VText>) {
             if let Some(old_vnode) = old_vnode {
                 let text_node = old_vnode.dom_ref().unwrap().clone();
-                text_node.set_text_content(&self.content);
+                if old_vnode.content != self.content {
+                    text_node.set_text_content(&self.content);
+                }
                 self.dom_ref = Some(text_node);
             } else {
                 let text_node = document().create_text_node(&self.content);
