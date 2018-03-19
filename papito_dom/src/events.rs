@@ -1,9 +1,13 @@
 use stdweb::web::{Element, EventListenerHandle, IEventTarget};
 use stdweb::web::event::*;
 use std::marker::PhantomData;
+use std::fmt::Debug;
+use std::fmt::{Formatter, self};
 
 /// Add or remove events from the DOM
 pub trait DOMEvent {
+    fn event_type(&self) -> &'static str;
+
     fn attach(&mut self, parent: &Element);
 
     fn detach(&mut self);
@@ -13,6 +17,7 @@ pub trait DOMEvent {
 pub struct DOMEventListener<T, F> where
     F: FnMut(T) + 'static,
     T: ConcreteEvent {
+    event_type: &'static str,
     listener: Option<F>,
     listener_handle: Option<EventListenerHandle>,
     _phantom: PhantomData<T>,
@@ -23,6 +28,7 @@ impl<T, F> DOMEventListener<T, F> where
     T: ConcreteEvent {
     pub fn new(listener: F) -> DOMEventListener<T, F> {
         DOMEventListener {
+            event_type: T::EVENT_TYPE,
             listener: Some(listener),
             listener_handle: None,
             _phantom: PhantomData,
@@ -33,6 +39,10 @@ impl<T, F> DOMEventListener<T, F> where
 impl<T, F> DOMEvent for DOMEventListener<T, F> where
     F: FnMut(T) + 'static,
     T: ConcreteEvent {
+    fn event_type(&self) -> &'static str {
+        self.event_type
+    }
+
     fn attach(&mut self, parent: &Element) {
         let listener = self.listener.take()
             .expect("Event listener is either already attached or detached");
@@ -91,3 +101,9 @@ convert_to_dom_ev_listener!(
     FocusEvent,
     BlurEvent
 );
+
+impl Debug for DOMEvent {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "EventType = \"{}\"", self.event_type())
+    }
+}
