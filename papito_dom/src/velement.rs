@@ -229,14 +229,14 @@ mod wasm {
 
     impl DOMRemove for VElement {
         fn remove(&mut self, parent: &Element) {
+            let dom_ref = self.dom_ref.take()
+                .expect("Cannot remove non-existent element.");
             // Dismember the events
-            self.events.remove(parent);
+            self.events.remove(&dom_ref);
             // Remove child and their events
-            self.child.as_mut().map(|it| &mut **it).remove(parent);
+            self.child.as_mut().map(|it| &mut **it).remove(&dom_ref);
             // Lastly remove self
-            parent.remove_child(&self.dom_ref.take()
-                .expect("Cannot remove non-existent element.")
-            ).unwrap();
+            parent.remove_child(&dom_ref).unwrap();
         }
     }
 
