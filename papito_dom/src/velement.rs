@@ -4,6 +4,8 @@ use std::fmt::{self, Formatter};
 use std::fmt::Display;
 #[cfg(target_arch = "wasm32")]
 use stdweb::web::Element;
+#[cfg(target_arch = "wasm32")]
+use events::DOMEvent;
 use vnode::VNode;
 
 #[derive(Debug, Eq, PartialEq)]
@@ -47,6 +49,8 @@ pub struct VElement {
     child: Option<Box<VNode>>,
     is_self_closing: bool,
     #[cfg(target_arch = "wasm32")]
+    events: Option<Vec<Box<DOMEvent>>>,
+    #[cfg(target_arch = "wasm32")]
     dom_ref: Option<Element>,
 }
 
@@ -60,6 +64,8 @@ impl VElement {
             child: child.map(|it| Box::new(it)),
             is_self_closing,
             #[cfg(target_arch = "wasm32")]
+            events: None,
+            #[cfg(target_arch = "wasm32")]
             dom_ref: None,
         }
     }
@@ -67,6 +73,11 @@ impl VElement {
     #[cfg(target_arch = "wasm32")]
     pub fn dom_ref(&self) -> Option<&Element> {
         self.dom_ref.as_ref()
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn set_events(&mut self, events: Vec<Box<DOMEvent>>) {
+        self.events = Some(events);
     }
 
     fn tag(&self) -> &str {
