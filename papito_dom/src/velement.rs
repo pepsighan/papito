@@ -279,13 +279,16 @@ mod wasm {
         }
     }
 
-//    impl DOMPatch for Events {
-//        fn patch(&mut self, parent: &Element, old_vnode: Option<&Events>) {
-//            if let Some(ref events) = old_vnode {
-//                for ev in events.0.iter() {
-//                    ev.rem
-//                }
-//            }
-//        }
-//    }
+    impl DOMPatch<Events> for Events {
+        fn patch(&mut self, parent: &Element, old_vnode: Option<&mut Events>) {
+            if let Some(events) = old_vnode {
+                for ev in events.0.iter_mut() {
+                    ev.detach();
+                }
+            }
+            for ev in self.0.iter_mut() {
+                ev.attach(parent);
+            }
+        }
+    }
 }
