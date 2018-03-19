@@ -280,14 +280,18 @@ mod wasm {
     }
 
     impl DOMPatch<Events> for Events {
-        fn patch(&mut self, parent: &Element, old_vnode: Option<&mut Events>) {
-            if let Some(events) = old_vnode {
-                for ev in events.0.iter_mut() {
-                    ev.detach();
-                }
-            }
+        fn patch(&mut self, parent: &Element, mut old_vnode: Option<&mut Events>) {
+            old_vnode.remove(parent);
             for ev in self.0.iter_mut() {
                 ev.attach(parent);
+            }
+        }
+    }
+
+    impl DOMRemove for Events {
+        fn remove(&mut self, _: &Element) {
+            for ev in self.0.iter_mut() {
+                ev.detach();
             }
         }
     }
