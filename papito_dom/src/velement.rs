@@ -37,7 +37,7 @@ pub struct VElement {
     child: Option<Box<VNode>>,
     is_self_closing: bool,
     #[cfg(target_arch = "wasm32")]
-    events: Option<Vec<Box<DOMEvent>>>,
+    events: Vec<Box<DOMEvent>>,
     #[cfg(target_arch = "wasm32")]
     dom_ref: Option<Element>,
 }
@@ -52,7 +52,7 @@ impl VElement {
             child: child.map(|it| Box::new(it)),
             is_self_closing,
             #[cfg(target_arch = "wasm32")]
-            events: None,
+            events: vec![],
             #[cfg(target_arch = "wasm32")]
             dom_ref: None,
         }
@@ -65,7 +65,7 @@ impl VElement {
 
     #[cfg(target_arch = "wasm32")]
     pub fn set_events(&mut self, events: Vec<Box<DOMEvent>>) {
-        self.events = Some(events);
+        self.events = events;
     }
 }
 
