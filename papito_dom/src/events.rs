@@ -107,3 +107,13 @@ impl Debug for DOMEvent {
         write!(f, "EventType = \"{}\"", self.event_type())
     }
 }
+
+// Implemented because of the requirements on VElement. Could not compare two closures
+// so a simple pass through `true`.
+impl PartialEq for DOMEvent {
+    fn eq(&self, other: &DOMEvent) -> bool {
+        true
+    }
+}
+
+impl Eq for DOMEvent {}
