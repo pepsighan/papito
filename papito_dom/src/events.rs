@@ -3,7 +3,7 @@ use stdweb::web::event::*;
 use std::marker::PhantomData;
 
 /// Add or remove events from the DOM
-pub trait DOMEvents {
+pub trait DOMEvent {
     fn attach(&mut self, parent: &Element);
 
     fn detach(&mut self);
@@ -30,7 +30,7 @@ impl<T, F> DOMEventListener<T, F> where
     }
 }
 
-impl<T, F> DOMEvents for DOMEventListener<T, F> where
+impl<T, F> DOMEvent for DOMEventListener<T, F> where
     F: FnMut(T) + 'static,
     T: ConcreteEvent {
     fn attach(&mut self, parent: &Element) {
