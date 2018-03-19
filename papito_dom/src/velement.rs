@@ -30,6 +30,9 @@ impl Display for Attributes {
 }
 
 #[derive(Debug, Eq, PartialEq)]
+pub struct Events(Vec<Box<DOMEvent>>);
+
+#[derive(Debug, Eq, PartialEq)]
 pub struct VElement {
     tag: CowStr,
     class: Option<ClassString>,
@@ -37,7 +40,7 @@ pub struct VElement {
     child: Option<Box<VNode>>,
     is_self_closing: bool,
     #[cfg(target_arch = "wasm32")]
-    events: Vec<Box<DOMEvent>>,
+    events: Events,
     #[cfg(target_arch = "wasm32")]
     dom_ref: Option<Element>,
 }
@@ -52,7 +55,7 @@ impl VElement {
             child: child.map(|it| Box::new(it)),
             is_self_closing,
             #[cfg(target_arch = "wasm32")]
-            events: vec![],
+            events: Events(vec![]),
             #[cfg(target_arch = "wasm32")]
             dom_ref: None,
         }
@@ -65,7 +68,7 @@ impl VElement {
 
     #[cfg(target_arch = "wasm32")]
     pub fn set_events(&mut self, events: Vec<Box<DOMEvent>>) {
-        self.events = events;
+        self.events.0 = events;
     }
 }
 
@@ -192,20 +195,20 @@ mod wasm {
     use indexmap::IndexMap;
     use stdweb::web::{Element, document, INode, IElement};
     use vdiff::{DOMPatch, DOMRemove, DOMReorder};
-    use super::{VElement, ClassString, Attributes};
+    use super::{VElement, ClassString, Attributes, Events};
 
     impl DOMPatch<VElement> for VElement {
-        fn patch(&mut self, parent: &Element, old_vnode: Option<&VElement>) {
+        fn patch(&mut self, parent: &Element, old_vnode: Option<&mut VElement>) {
             if let Some(old_vnode) = old_vnode {
                 if old_vnode.tag != self.tag {
                     old_vnode.remove(parent);
                     create_new_dom_node(self, parent);
                 } else {
-                    let old_el = old_vnode.dom_ref().expect("Older element must have dom_ref");
-                    let el = old_el.clone();
-                    self.class.patch(&el, old_vnode.class.as_ref());
-                    self.attrs.patch(&el, old_vnode.attrs.as_ref());
-                    self.child.patch(&el, old_vnode.child.as_ref().map(|it| &**it));
+                    let el = old_vnode.dom_ref().expect("Older element must have dom_ref")
+                        .clone();
+                    self.class.patch(&el, old_vnode.class.as_mut());
+                    self.attrs.patch(&el, old_vnode.attrs.as_mut());
+                    self.child.patch(&el, old_vnode.child.as_mut().map(|it| &mut **it));
                     self.dom_ref = Some(el);
                 }
             } else {
@@ -222,7 +225,7 @@ mod wasm {
     }
 
     impl DOMRemove for VElement {
-        fn remove(&self, parent: &Element) {
+        fn remove(&mut self, parent: &Element) {
             parent.remove_child(self.dom_ref().unwrap())
                 .expect("Cannot remove non-existent element. But should have existed.");
         }
@@ -233,25 +236,26 @@ mod wasm {
         vel.class.patch(&el_node, None);
         vel.attrs.patch(&el_node, None);
         vel.child.patch(&el_node, None);
+//        vel.events.patch(&el_node, None);
         parent.append_child(&el_node);
         vel.dom_ref = Some(el_node);
     }
 
     impl DOMPatch<ClassString> for ClassString {
-        fn patch(&mut self, parent: &Element, _: Option<&ClassString>) {
+        fn patch(&mut self, parent: &Element, _: Option<&mut ClassString>) {
             parent.set_attribute("class", &self.0)
                 .unwrap();
         }
     }
 
     impl DOMRemove for ClassString {
-        fn remove(&self, parent: &Element) {
+        fn remove(&mut self, parent: &Element) {
             parent.remove_attribute("class");
         }
     }
 
     impl DOMPatch<Attributes> for Attributes {
-        fn patch(&mut self, parent: &Element, old_vnode: Option<&Attributes>) {
+        fn patch(&mut self, parent: &Element, old_vnode: Option<&mut Attributes>) {
             let mut deleted_attrs = old_vnode.map(|it| it.0
                 .iter()
                 .collect::<IndexMap<_, _>>())
@@ -267,10 +271,20 @@ mod wasm {
     }
 
     impl DOMRemove for Attributes {
-        fn remove(&self, parent: &Element) {
+        fn remove(&mut self, parent: &Element) {
             for (k, _) in self.0.iter() {
                 parent.remove_attribute(k);
             }
         }
     }
+
+//    impl DOMPatch for Events {
+//        fn patch(&mut self, parent: &Element, old_vnode: Option<&Events>) {
+//            if let Some(ref events) = old_vnode {
+//                for ev in events.0.iter() {
+//                    ev.rem
+//                }
+//            }
+//        }
+//    }
 }

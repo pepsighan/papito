@@ -52,7 +52,7 @@ mod wasm {
             match *$against {
                 $(
                     VNode::$variant(ref mut node_like) => {
-                        if let Some(&VNode::$variant(ref old_node_like)) = $old_vnode {
+                        if let Some(&mut VNode::$variant(ref mut old_node_like)) = $old_vnode {
                             node_like.patch($parent, Some(old_node_like));
                         } else {
                             $old_vnode.remove($parent);
@@ -65,17 +65,17 @@ mod wasm {
     }
 
     impl DOMPatch<VNode> for VNode {
-        fn patch(&mut self, parent: &Element, old_vnode: Option<&VNode>) {
+        fn patch(&mut self, parent: &Element, mut old_vnode: Option<&mut VNode>) {
             match_for_vnode_patch!(self, parent, old_vnode, [Text, Element, List]);
         }
     }
 
     impl DOMRemove for VNode {
-        fn remove(&self, parent: &Element) {
+        fn remove(&mut self, parent: &Element) {
             match *self {
-                VNode::Text(ref text) => text.remove(parent),
-                VNode::Element(ref element) => element.remove(parent),
-                VNode::List(ref list) => list.remove(parent)
+                VNode::Text(ref mut text) => text.remove(parent),
+                VNode::Element(ref mut element) => element.remove(parent),
+                VNode::List(ref mut list) => list.remove(parent)
             }
         }
     }

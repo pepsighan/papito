@@ -55,9 +55,9 @@ mod wasm {
     use indexmap::IndexMap;
 
     impl DOMPatch<VList> for VList {
-        fn patch(&mut self, parent: &Element, old_vnode: Option<&VList>) {
-            if let Some(ref old_vnode) = old_vnode {
-                let mut old_children: IndexMap<_, _> = old_vnode.children.iter().collect();
+        fn patch(&mut self, parent: &Element, old_vnode: Option<&mut VList>) {
+            if let Some(old_vnode) = old_vnode {
+                let mut old_children: IndexMap<_, _> = old_vnode.children.iter_mut().collect();
                 for (k, v) in self.children.iter_mut() {
                     if let Some(pre_vnode) = old_children.swap_remove(k) {
                         // Patch if any old VNode found
@@ -81,8 +81,8 @@ mod wasm {
     }
 
     impl DOMRemove for VList {
-        fn remove(&self, parent: &Element) {
-            for (_, child) in self.children.iter() {
+        fn remove(&mut self, parent: &Element) {
+            for (_, child) in self.children.iter_mut() {
                 child.remove(parent);
             }
         }

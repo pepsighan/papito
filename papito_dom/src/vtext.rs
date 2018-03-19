@@ -45,7 +45,7 @@ mod wasm {
     use super::VText;
 
     impl DOMPatch<VText> for VText {
-        fn patch(&mut self, parent: &Element, old_vnode: Option<&VText>) {
+        fn patch(&mut self, parent: &Element, old_vnode: Option<&mut VText>) {
             if let Some(old_vnode) = old_vnode {
                 let text_node = old_vnode.dom_ref().unwrap().clone();
                 text_node.set_text_content(&self.content);
@@ -66,7 +66,7 @@ mod wasm {
     }
 
     impl DOMRemove for VText {
-        fn remove(&self, parent: &Element) {
+        fn remove(&mut self, parent: &Element) {
             parent.remove_child(self.dom_ref().unwrap())
                 .expect("Cannot remove non-existent text node. But should have existed.");
         }
