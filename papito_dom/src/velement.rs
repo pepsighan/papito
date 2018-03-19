@@ -29,6 +29,7 @@ impl Display for Attributes {
     }
 }
 
+#[cfg(target_arch = "wasm32")]
 #[derive(Debug, Eq, PartialEq)]
 pub struct Events(Vec<Box<DOMEvent>>);
 
