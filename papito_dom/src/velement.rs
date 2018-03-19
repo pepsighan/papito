@@ -209,6 +209,7 @@ mod wasm {
                     self.class.patch(&el, old_vnode.class.as_mut());
                     self.attrs.patch(&el, old_vnode.attrs.as_mut());
                     self.child.patch(&el, old_vnode.child.as_mut().map(|it| &mut **it));
+                    self.events.patch(&el, Some(&mut old_vnode.events));
                     self.dom_ref = Some(el);
                 }
             } else {
@@ -224,8 +225,14 @@ mod wasm {
         }
     }
 
+
     impl DOMRemove for VElement {
         fn remove(&mut self, parent: &Element) {
+            // Dismember the events
+            self.events.remove(parent);
+            // Remove child and their events
+            self.child.remove(parent);
+            // Lastly remove self
             parent.remove_child(&self.dom_ref.take()
                 .expect("Cannot remove non-existent element.")
             ).unwrap();
@@ -237,7 +244,7 @@ mod wasm {
         vel.class.patch(&el_node, None);
         vel.attrs.patch(&el_node, None);
         vel.child.patch(&el_node, None);
-//        vel.events.patch(&el_node, None);
+        vel.events.patch(&el_node, None);
         parent.append_child(&el_node);
         vel.dom_ref = Some(el_node);
     }
@@ -281,6 +288,7 @@ mod wasm {
 
     impl DOMPatch<Events> for Events {
         fn patch(&mut self, parent: &Element, mut old_vnode: Option<&mut Events>) {
+            // Remove older events because their is no way for Eq between two events.
             old_vnode.remove(parent);
             for ev in self.0.iter_mut() {
                 ev.attach(parent);
