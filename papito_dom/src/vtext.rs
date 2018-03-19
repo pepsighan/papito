@@ -67,8 +67,9 @@ mod wasm {
 
     impl DOMRemove for VText {
         fn remove(&mut self, parent: &Element) {
-            parent.remove_child(self.dom_ref().unwrap())
-                .expect("Cannot remove non-existent text node. But should have existed.");
+            parent.remove_child(&self.dom_ref.take()
+                .expect("Cannot remove non-existent text node.")
+            ).unwrap();
         }
     }
 }

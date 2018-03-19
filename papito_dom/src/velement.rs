@@ -226,8 +226,9 @@ mod wasm {
 
     impl DOMRemove for VElement {
         fn remove(&mut self, parent: &Element) {
-            parent.remove_child(self.dom_ref().unwrap())
-                .expect("Cannot remove non-existent element. But should have existed.");
+            parent.remove_child(&self.dom_ref.take()
+                .expect("Cannot remove non-existent element.")
+            ).unwrap();
         }
     }
 
