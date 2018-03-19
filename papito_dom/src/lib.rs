@@ -1,4 +1,6 @@
 extern crate indexmap;
+#[cfg(target_arch = "wasm32")]
+#[macro_use]
 extern crate stdweb;
 
 use std::borrow::Cow;
