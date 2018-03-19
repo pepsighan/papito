@@ -16,7 +16,7 @@ mod vtext;
 mod velement;
 mod vlist;
 #[cfg(target_arch = "wasm32")]
-mod vdiff;
+pub mod vdiff;
 #[cfg(target_arch = "wasm32")]
 mod events;
 
@@ -42,6 +42,13 @@ pub fn ev<E, T, F>(listener: E) -> Box<events::DOMEvent> where
     F: FnMut(T) + 'static,
     T: ConcreteEvent + 'static {
     Box::new(listener.into())
+}
+
+#[cfg(target_arch = "wasm32")]
+fn console_log(msg: &str) {
+    js! { @(no_return)
+        console.log(@{ msg });
+    }
 }
 
 #[macro_export]
