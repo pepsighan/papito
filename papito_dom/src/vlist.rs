@@ -1,8 +1,8 @@
-use vnode::VNode;
-use std::fmt::Display;
-use std::fmt::{Formatter, self};
-use indexmap::IndexMap;
 use CowStr;
+use indexmap::IndexMap;
+use std::fmt::{self, Formatter};
+use std::fmt::Display;
+use vnode::VNode;
 
 type Key = CowStr;
 
@@ -51,18 +51,18 @@ impl From<Vec<VNode>> for VList {
     }
 }
 
+use CowStr;
+use stdweb::web::Element;
+use stdweb::web::Node;
+use super::VList;
+use vdiff::{DOMPatch, DOMRemove};
+use vdiff::DOMReorder;
+use vdiff::NextDOMNode;
+
 #[cfg(target_arch = "wasm32")]
 mod wasm {
-    use super::VList;
-    use vdiff::{DOMPatch, DOMRemove};
-    use stdweb::web::Element;
-    use vdiff::DOMReorder;
-    use vdiff::NextDOMNode;
-    use stdweb::web::Node;
-    use CowStr;
-
     impl DOMPatch<VList> for VList {
-        fn patch(&mut self, parent: &Element, next: Option<&Node>, old_vnodes: Option<&mut VList>) {
+        fn patch(&mut self, parent: &Element, _: Option<&Node>, old_vnodes: Option<&mut VList>) {
             if let Some(old_vnodes) = old_vnodes {
                 let mut patched_node_keys = vec![];
                 {
@@ -79,7 +79,9 @@ mod wasm {
                         next_node = v.next_dom_node();
                     }
                 }
-                update_positions(&self, parent, &old_vnodes);
+                if has_dirty_order(&self, &old_vnodes) {
+                    update_positions(&self, parent, &old_vnodes);
+                }
                 remove_old_vnodes(old_vnodes, patched_node_keys, parent);
             } else {
                 for (_, v) in self.children.iter_mut() {
@@ -87,6 +89,24 @@ mod wasm {
                 }
             }
         }
+    }
+
+    fn has_dirty_order(new_vnodes: &VList, old_nodes: &VList) -> bool {
+        let mut old_last_position = 0;
+        for (k, _) in new_vnodes.children.iter() {
+            let old_pos = if let Some(pos) = old_nodes.position(k) {
+                pos
+            } else {
+                // new nodes not considered for order
+                continue;
+            };
+            if old_pos >= old_last_position {
+                old_last_position = old_pos;
+            } else {
+                return true;
+            }
+        }
+        false
     }
 
     fn update_positions(new_vnodes: &VList, parent: &Element, old_vnodes: &VList) {
