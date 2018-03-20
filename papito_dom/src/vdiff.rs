@@ -1,4 +1,5 @@
 use stdweb::web::Element;
+use stdweb::web::INode;
 
 /// Required to update the DOM on the `parent` node. It is also tasked with Diffing along
 /// as it creates patches.
@@ -14,7 +15,9 @@ pub trait DOMRemove {
 /// Required when re-ordering the `VList` children. Reordering is done by appending the dom node
 /// again in a new order.
 pub trait DOMReorder {
-    fn reorder(&self, parent: &Element);
+    fn append_child(&self, parent: &Element);
+
+    fn insert_before<T: INode>(&self, parent: &Element, next: &T);
 }
 
 impl<T, Q> DOMPatch<T> for Option<Q> where

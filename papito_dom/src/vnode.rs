@@ -43,9 +43,11 @@ impl_conversion_to_vnode!(List, VList);
 
 #[cfg(target_arch = "wasm32")]
 mod wasm {
-    use vdiff::{DOMPatch, DOMRemove, DOMReorder};
+    use vdiff::{DOMPatch, DOMRemove};
     use stdweb::web::Element;
     use super::VNode;
+    use stdweb::web::INode;
+    use vdiff::DOMReorder;
 
     macro_rules! match_for_vnode_patch {
         ($against:ident, $parent:ident, $old_vnode:ident, [$( $variant:ident ),*] ) => {
@@ -81,11 +83,19 @@ mod wasm {
     }
 
     impl DOMReorder for VNode {
-        fn reorder(&self, parent: &Element) {
+        fn append_child(&self, parent: &Element) {
             match *self {
-                VNode::Text(ref text) => text.reorder(parent),
-                VNode::Element(ref element) => element.reorder(parent),
-                VNode::List(ref list) => list.reorder(parent)
+                VNode::Text(ref text) => text.append_child(parent),
+                VNode::Element(ref element) => element.append_child(parent),
+                VNode::List(ref list) => list.append_child(parent)
+            }
+        }
+
+        fn insert_before<T: INode>(&self, parent: &Element, next: &T) {
+            match *self {
+                VNode::Text(ref text) => text.insert_before(parent, next),
+                VNode::Element(ref element) => element.insert_before(parent, next),
+                VNode::List(ref list) => list.insert_before(parent, next)
             }
         }
     }

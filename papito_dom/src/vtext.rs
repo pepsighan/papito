@@ -41,8 +41,10 @@ impl<T: Into<CowStr>> From<T> for VText {
 #[cfg(target_arch = "wasm32")]
 mod wasm {
     use stdweb::web::{Element, document, INode};
-    use vdiff::{DOMPatch, DOMReorder, DOMRemove};
+    use vdiff::{DOMPatch, DOMRemove};
     use super::VText;
+    use stdweb::web::TextNode;
+    use vdiff::DOMReorder;
 
     impl DOMPatch<VText> for VText {
         fn patch(&mut self, parent: &Element, old_vnode: Option<&mut VText>) {
@@ -61,9 +63,14 @@ mod wasm {
     }
 
     impl DOMReorder for VText {
-        fn reorder(&self, parent: &Element) {
-            let dom_ref = self.dom_ref().expect("Cannot re-order previously non-existent text node.");
+        fn append_child(&self, parent: &Element) {
+            let dom_ref = self.dom_ref().expect("Cannot append previously non-existent text node.");
             parent.append_child(dom_ref);
+        }
+
+        fn insert_before<T: INode>(&self, parent: &Element, next: &T) {
+            parent.insert_before(self.dom_ref().expect("Cannot insert previously non-existent text node."), next)
+                .unwrap();
         }
     }
 

@@ -195,8 +195,9 @@ fn split_into_class_and_attrs(mut attrs: Attributes) -> (Option<ClassString>, Op
 mod wasm {
     use indexmap::IndexMap;
     use stdweb::web::{Element, document, INode, IElement};
-    use vdiff::{DOMPatch, DOMRemove, DOMReorder};
+    use vdiff::{DOMPatch, DOMRemove};
     use super::{VElement, ClassString, Attributes, Events};
+    use vdiff::DOMReorder;
 
     impl DOMPatch<VElement> for VElement {
         fn patch(&mut self, parent: &Element, old_vnode: Option<&mut VElement>) {
@@ -220,12 +221,16 @@ mod wasm {
     }
 
     impl DOMReorder for VElement {
-        fn reorder(&self, parent: &Element) {
-            let dom_ref = self.dom_ref().expect("Cannot re-order previously non-existent element.");
+        fn append_child(&self, parent: &Element) {
+            let dom_ref = self.dom_ref().expect("Cannot append previously non-existent element.");
             parent.append_child(dom_ref);
         }
-    }
 
+        fn insert_before<T: INode>(&self, parent: &Element, next: &T) {
+            parent.insert_before(self.dom_ref().expect("Cannot insert previously non-existent text node."), next)
+                .unwrap();
+        }
+    }
 
     impl DOMRemove for VElement {
         fn remove(&mut self, parent: &Element) {
