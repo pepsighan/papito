@@ -114,7 +114,6 @@ mod wasm {
         for (k, new_node) in new_vnodes.children.iter().rev() {
             let new_pos = new_vnodes.position(k);
             let old_pos = old_vnodes.position(k);
-            console!(log, &format!("k: {}, new_pos: {:?}, old_pos: {:?}", k, new_pos, old_pos));
             if old_pos.is_none() {
                 // It is a new node and already inserted to the write place.
             } else if new_pos.unwrap() != old_pos.unwrap() {
