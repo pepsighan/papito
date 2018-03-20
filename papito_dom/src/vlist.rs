@@ -59,6 +59,7 @@ mod wasm {
     use vdiff::DOMReorder;
     use vdiff::NextDOMNode;
     use stdweb::web::Node;
+    use CowStr;
 
     impl DOMPatch<VList> for VList {
         fn patch(&mut self, parent: &Element, next: Option<&Node>, old_vnodes: Option<&mut VList>) {
@@ -78,32 +79,40 @@ mod wasm {
                         next_node = v.next_dom_node();
                     }
                 }
-                let mut next_key = None;
-                for (k, new_node) in self.children.iter().rev() {
-                    let new_pos = self.position(k);
-                    let old_pos = old_vnodes.position(k);
-                    if old_pos.is_none() {
-                        // It is a new node and already inserted to the write place.
-                    } else if new_pos.unwrap() != old_pos.unwrap() {
-                        if let Some(next_key) = next_key {
-                            // This node can be placed before the next one.
-                            let next_vnode = self.children.get(next_key).unwrap();
-                            new_node.move_before(parent, &next_vnode.next_dom_node().unwrap());
-                        } else {
-                            // since there is no node after it, do nothing. as all is alright.
-                        }
-                    }
-                    next_key = Some(k);
-                }
-                for (k, v) in old_vnodes.children.iter_mut() {
-                    if patched_node_keys.iter().position(|it| it == k).is_none() {
-                        v.remove(parent);
-                    }
-                }
+                update_positions(&self, parent, &old_vnodes);
+                remove_old_vnodes(old_vnodes, patched_node_keys, parent);
             } else {
                 for (_, v) in self.children.iter_mut() {
                     v.patch(parent, None, None);
                 }
+            }
+        }
+    }
+
+    fn update_positions(new_vnodes: &VList, parent: &Element, old_vnodes: &VList) {
+        let mut next_key = None;
+        for (k, new_node) in new_vnodes.children.iter().rev() {
+            let new_pos = new_vnodes.position(k);
+            let old_pos = old_vnodes.position(k);
+            if old_pos.is_none() {
+                // It is a new node and already inserted to the write place.
+            } else if new_pos.unwrap() != old_pos.unwrap() {
+                if let Some(next_key) = next_key {
+                    // This node can be placed before the next one.
+                    let next_vnode = new_vnodes.children.get(next_key).unwrap();
+                    new_node.move_before(parent, &next_vnode.next_dom_node().unwrap());
+                } else {
+                    // since there is no node after it, do nothing. as all is alright.
+                }
+            }
+            next_key = Some(k);
+        }
+    }
+
+    fn remove_old_vnodes(old_vnodes: &mut VList, patched_node_keys: Vec<CowStr>, parent: &Element) {
+        for (k, v) in old_vnodes.children.iter_mut() {
+            if patched_node_keys.iter().position(|it| it == k).is_none() {
+                v.remove(parent);
             }
         }
     }
