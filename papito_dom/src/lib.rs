@@ -54,6 +54,10 @@ pub fn ev<E, T, F>(listener: E) -> Box<events::DOMEvent> where
 
 #[macro_export]
 macro_rules! h {
+    // Creates vnodes from a vec
+    (vec $n:expr $(,)*) => {
+        $crate::h($crate::li($n));
+    };
     // Creates keyed vnodes
     ({ $( $k:expr => $v:expr ),* $(,)* }) => {
         $crate::h($crate::li(vec![ $( ($k, $v) ),* ]))
@@ -186,6 +190,20 @@ mod test {
     #[test]
     fn should_create_vlist_without_keys() {
         let node = h!([h!("div", _), h!("div", _), h!("div", _)]);
+        assert_eq!(
+            VNode::List(vec![
+                (Cow::from("0"), VNode::Element(VElement::new("div".into(), None, None, None, false))),
+                (Cow::from("1"), VNode::Element(VElement::new("div".into(), None, None, None, false))),
+                (Cow::from("2"), VNode::Element(VElement::new("div".into(), None, None, None, false))),
+            ].into()),
+            node
+        );
+    }
+
+    #[test]
+    fn should_create_vlist_from_vec() {
+        let list = vec![h!("div", _), h!("div", _), h!("div", _)];
+        let node = h!(vec list);
         assert_eq!(
             VNode::List(vec![
                 (Cow::from("0"), VNode::Element(VElement::new("div".into(), None, None, None, false))),
