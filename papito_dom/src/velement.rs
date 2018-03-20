@@ -251,9 +251,11 @@ mod wasm {
     }
 
     impl DOMPatch<ClassString> for ClassString {
-        fn patch(&mut self, parent: &Element, _: Option<&mut ClassString>) {
-            parent.set_attribute("class", &self.0)
-                .unwrap();
+        fn patch(&mut self, parent: &Element, old_value: Option<&mut ClassString>) {
+            if Some(&mut *self) != old_value {
+                parent.set_attribute("class", &self.0)
+                    .unwrap();
+            }
         }
     }
 
@@ -270,8 +272,10 @@ mod wasm {
                 .collect::<IndexMap<_, _>>())
                 .unwrap_or(IndexMap::new());
             for (k, v) in self.0.iter() {
-                parent.set_attribute(&k, &v).unwrap();
-                deleted_attrs.swap_remove(&k);
+                let old_attr_val = deleted_attrs.swap_remove(&k);
+                if Some(v) != old_attr_val {
+                    parent.set_attribute(&k, &v).unwrap();
+                }
             }
             for (k, _) in deleted_attrs.iter() {
                 parent.remove_attribute(&k);
