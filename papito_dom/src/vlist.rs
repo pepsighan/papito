@@ -18,6 +18,7 @@ impl VList {
         }
     }
 
+    #[cfg(target_arch = "wasm32")]
     fn position(&self, key: &str) -> Option<usize> {
         self.children.iter().position(|(k, _)| k == key)
     }
