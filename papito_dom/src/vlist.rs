@@ -84,7 +84,7 @@ mod wasm {
                         if let Some(next_key) = next_key {
                             // This node can be placed before the next one.
                             let next_vnode = self.children.get(next_key).unwrap();
-                            new_node.reorder_before(parent, &next_vnode.next_dom_node().unwrap());
+                            new_node.move_before(parent, &next_vnode.next_dom_node().unwrap());
                         } else {
                             // since there is no node after it, do nothing. as all is alright.
                         }
@@ -113,15 +113,15 @@ mod wasm {
     }
 
     impl DOMReorder for VList {
-        fn reorder_append(&self, parent: &Element) {
+        fn move_to_last(&self, parent: &Element) {
             for (_, v) in self.children.iter() {
-                v.reorder_append(parent);
+                v.move_to_last(parent);
             }
         }
 
-        fn reorder_before(&self, parent: &Element, next: &Node) {
+        fn move_before(&self, parent: &Element, next: &Node) {
             for (_, v) in self.children.iter() {
-                v.reorder_before(parent, next);
+                v.move_before(parent, next);
             }
         }
     }

@@ -64,12 +64,12 @@ mod wasm {
     }
 
     impl DOMReorder for VText {
-        fn reorder_append(&self, parent: &Element) {
+        fn move_to_last(&self, parent: &Element) {
             let dom_ref = self.dom_ref().expect("Cannot append previously non-existent text node.");
             parent.append_child(dom_ref);
         }
 
-        fn reorder_before(&self, parent: &Element, next: &Node) {
+        fn move_before(&self, parent: &Element, next: &Node) {
             parent.insert_before(self.dom_ref().expect("Cannot insert previously non-existent text node."), next)
                 .unwrap();
         }
