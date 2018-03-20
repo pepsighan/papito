@@ -67,7 +67,6 @@ mod wasm {
                 {
                     for (k, v) in self.children.iter_mut() {
                         if let Some(pre_vnode) = old_vnodes.children.get_mut(k) {
-                            console!(log, &format!("patched: {:?}", v));
                             // Patch if any old VNode found
                             v.patch(parent, Some(pre_vnode));
                             patched_node_keys.push(k.clone());
