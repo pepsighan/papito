@@ -223,12 +223,12 @@ mod wasm {
     }
 
     impl DOMReorder for VElement {
-        fn append_child(&self, parent: &Element) {
+        fn reorder_append(&self, parent: &Element) {
             let dom_ref = self.dom_ref().expect("Cannot append previously non-existent element.");
             parent.append_child(dom_ref);
         }
 
-        fn insert_before(&self, parent: &Element, next: &Node) {
+        fn reorder_before(&self, parent: &Element, next: &Node) {
             parent.insert_before(self.dom_ref().expect("Cannot insert previously non-existent text node."), next)
                 .unwrap();
         }

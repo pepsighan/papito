@@ -84,19 +84,19 @@ mod wasm {
     }
 
     impl DOMReorder for VNode {
-        fn append_child(&self, parent: &Element) {
+        fn reorder_append(&self, parent: &Element) {
             match *self {
-                VNode::Text(ref text) => text.append_child(parent),
-                VNode::Element(ref element) => element.append_child(parent),
-                VNode::List(ref list) => list.append_child(parent)
+                VNode::Text(ref text) => text.reorder_append(parent),
+                VNode::Element(ref element) => element.reorder_append(parent),
+                VNode::List(ref list) => list.reorder_append(parent)
             }
         }
 
-        fn insert_before(&self, parent: &Element, next: &Node) {
+        fn reorder_before(&self, parent: &Element, next: &Node) {
             match *self {
-                VNode::Text(ref text) => text.insert_before(parent, next),
-                VNode::Element(ref element) => element.insert_before(parent, next),
-                VNode::List(ref list) => list.insert_before(parent, next)
+                VNode::Text(ref text) => text.reorder_before(parent, next),
+                VNode::Element(ref element) => element.reorder_before(parent, next),
+                VNode::List(ref list) => list.reorder_before(parent, next)
             }
         }
     }

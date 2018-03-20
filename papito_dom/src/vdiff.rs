@@ -15,9 +15,9 @@ pub trait DOMRemove {
 /// Required when re-ordering the `VList` children. Reordering is done by appending the dom node
 /// again in a new order.
 pub trait DOMReorder {
-    fn append_child(&self, parent: &Element);
+    fn reorder_append(&self, parent: &Element);
 
-    fn insert_before(&self, parent: &Element, next: &Node);
+    fn reorder_before(&self, parent: &Element, next: &Node);
 }
 
 pub trait NextDOMNode {
