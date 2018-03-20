@@ -46,13 +46,6 @@ pub fn ev<E, T, F>(listener: E) -> Box<events::DOMEvent> where
     Box::new(listener.into())
 }
 
-#[cfg(target_arch = "wasm32")]
-fn console_log(msg: &str) {
-    js! { @(no_return)
-        console.log(@{ msg });
-    }
-}
-
 #[macro_export]
 macro_rules! h {
     // Creates keyed vnodes
