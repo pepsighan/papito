@@ -1,4 +1,6 @@
 extern crate indexmap;
+#[cfg(target_arch = "wasm32")]
+#[macro_use]
 extern crate stdweb;
 
 use std::borrow::Cow;
@@ -6,6 +8,8 @@ use vnode::VNode;
 use vtext::VText;
 use velement::VElement;
 use vlist::VList;
+#[cfg(target_arch = "wasm32")]
+use stdweb::web::event::ConcreteEvent;
 
 type CowStr = Cow<'static, str>;
 
@@ -14,7 +18,9 @@ mod vtext;
 mod velement;
 mod vlist;
 #[cfg(target_arch = "wasm32")]
-mod vdiff;
+pub mod vdiff;
+#[cfg(target_arch = "wasm32")]
+mod events;
 
 pub fn txt<T: Into<VText>>(txt: T) -> VText {
     txt.into()
@@ -32,6 +38,14 @@ pub fn h<T: Into<VNode>>(node_like: T) -> VNode {
     node_like.into()
 }
 
+#[cfg(target_arch = "wasm32")]
+pub fn ev<E, T, F>(listener: E) -> Box<events::DOMEvent> where
+    E: Into<events::DOMEventListener<T, F>>,
+    F: FnMut(T) + 'static,
+    T: ConcreteEvent + 'static {
+    Box::new(listener.into())
+}
+
 #[macro_export]
 macro_rules! h {
     // Creates keyed vnodes
@@ -43,21 +57,56 @@ macro_rules! h {
         $crate::h($crate::li(vec![ $( $v ),* ]))
     };
     // Creates text vnode
-    ($n:expr) => {
+    ($n:expr $(,)*) => {
         $crate::h($crate::txt($n))
     };
     // Creates an empty element
-    ($n:expr, _) => {
+    ($n:expr, _ $(,)*) => {
         $crate::h($crate::el(($n, ())))
     };
     // Creates an element with map based attributes
-    ($n:expr, { $($k:expr => $v:expr),* $(,)* }) => {
+    ($n:expr, { $($k:expr => $v:expr),* $(,)* } $(,)*) => {
         $crate::h($crate::el(($n, vec![ $( ($k, $v) ),* ])))
     };
+    // Creates an element with event handlers
+    ($n:expr, [ $( $ev:expr ),* $(,)* ] $(,)*) => {{
+        let mut el = $crate::el(($n, ()));
+        #[cfg(target_arch = "wasm32")]
+        el.set_events(vec![ $( $crate::ev( $ev ) ),* ]);
+        $crate::h(el)
+    }};
+    // Creates an element with map based attributes and event handlers
+    ($n:expr, { $($k:expr => $v:expr),* $(,)* }, [ $( $ev:expr ),* $(,)* ] $(,)*) => {{
+        let mut el = $crate::el(($n, vec![ $( ($k, $v) ),* ]));
+        #[cfg(target_arch = "wasm32")]
+        el.set_events(vec![ $( $crate::ev( $ev ) ),* ]);
+        $crate::h(el)
+    }};
+    // Creates an element with map based attributes, event handlers and other arguments
+    ($n:expr, { $($k:expr => $v:expr),* $(,)* }, [ $( $ev:expr ),* $(,)* ], $( $o:expr ),* $(,)*) => {{
+        let mut el = $crate::el(($n, vec![ $( ($k, $v) ),* ], $( $o ),*));
+        #[cfg(target_arch = "wasm32")]
+        el.set_events(vec![ $( $crate::ev( $ev ) ),* ]);
+        $crate::h(el)
+    }};
     // Creates an element with map based attributes along with other arguments
-    ($n:expr, { $($k:expr => $v:expr),* }, $( $o:expr ),* $(,)* ) => {
+    ($n:expr, { $($k:expr => $v:expr),* $(,)* }, $( $o:expr ),* $(,)*) => {
         $crate::h($crate::el(($n, vec![ $( ($k, $v) ),* ], $( $o ),*)))
     };
+    // Creates an element with plain arguments, except attributes (not strictly), and event handlers
+    ($n:expr, [ $( $ev:expr ),* $(,)* ], $( $m:expr ),* $(,)*) => {{
+        let mut el = $crate::el(($n, $( $m ),*));
+        #[cfg(target_arch = "wasm32")]
+        el.set_events(vec![ $( $crate::ev( $ev ) ),* ]);
+        $crate::h(el)
+    }};
+    // Creates an element with plain arguments and event handlers
+    ($n:expr, $s:expr, [ $( $ev:expr ),* $(,)* ], $( $m:expr ),* $(,)*) => {{
+        let mut el = $crate::el(($n, $s, $( $m ),*));
+        #[cfg(target_arch = "wasm32")]
+        el.set_events(vec![ $( $crate::ev( $ev ) ),* ]);
+        $crate::h(el)
+    }};
     // Creates an element with plain arguments
     ($n:expr, $( $m:expr ),* $(,)*) => {
         $crate::h($crate::el(($n, $( $m ),*)))
@@ -70,6 +119,8 @@ mod test {
     use vnode::VNode;
     use velement::VElement;
     use std::borrow::Cow;
+    #[cfg(target_arch = "wasm32")]
+    use stdweb::web::event::InputEvent;
 
     #[test]
     fn should_create_text_vnode() {
@@ -205,6 +256,60 @@ mod test {
                     VNode::Text(VText::new("Hello World".into()))
                 ].into())
             ].into()),
+            node
+        );
+    }
+
+    #[test]
+    fn should_create_empty_input_with_event() {
+        let node = h!("input", [ |_: InputEvent| {} ]);
+        assert_eq!(
+            VNode::Element(VElement::new("input".into(), None, None, None, false)),
+            node
+        );
+    }
+
+    #[test]
+    fn should_create_empty_input_with_attribute_and_event() {
+        let node = h!("input", { "disabled" => "true" }, [ |_: InputEvent| {} ]);
+        assert_eq!(
+            VNode::Element(VElement::new(
+                "input".into(),
+                None,
+                Some(vec![("disabled", "true")].into()),
+                None,
+                false)
+            ),
+            node
+        );
+    }
+
+    #[test]
+    fn should_create_texted_div_with_attribute_and_event() {
+        let node = h!("div", { "style" => "color: white;" }, [ |_: InputEvent| {} ], h!("Hello"));
+        assert_eq!(
+            VNode::Element(VElement::new(
+                "div".into(),
+                None,
+                Some(vec![("style", "color: white;")].into()),
+                Some(VNode::Text(VText::new("Hello".into()))),
+                false)
+            ),
+            node
+        );
+    }
+
+    #[test]
+    fn should_create_texted_div_with_event() {
+        let node = h!("div", [ |_: InputEvent| {} ], h!("Hello"));
+        assert_eq!(
+            VNode::Element(VElement::new(
+                "div".into(),
+                None,
+                None,
+                Some(VNode::Text(VText::new("Hello".into()))),
+                false)
+            ),
             node
         );
     }

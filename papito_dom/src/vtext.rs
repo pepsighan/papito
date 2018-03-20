@@ -41,34 +41,55 @@ impl<T: Into<CowStr>> From<T> for VText {
 #[cfg(target_arch = "wasm32")]
 mod wasm {
     use stdweb::web::{Element, document, INode};
-    use vdiff::{DOMPatch, DOMReorder, DOMRemove};
+    use vdiff::{DOMPatch, DOMRemove};
     use super::VText;
+    use vdiff::DOMReorder;
+    use vdiff::NextDOMNode;
+    use stdweb::web::Node;
 
     impl DOMPatch<VText> for VText {
-        fn patch(&mut self, parent: &Element, old_vnode: Option<&VText>) {
+        fn patch(&mut self, parent: &Element, next: Option<&Node>, old_vnode: Option<&mut VText>) {
             if let Some(old_vnode) = old_vnode {
                 let text_node = old_vnode.dom_ref().unwrap().clone();
-                text_node.set_text_content(&self.content);
+                if old_vnode.content != self.content {
+                    text_node.set_text_content(&self.content);
+                }
                 self.dom_ref = Some(text_node);
             } else {
                 let text_node = document().create_text_node(&self.content);
                 self.dom_ref = Some(text_node);
-                parent.append_child(self.dom_ref().unwrap());
+                if let Some(next) = next {
+                    parent.insert_before(self.dom_ref().unwrap(), next).unwrap();
+                } else {
+                    parent.append_child(self.dom_ref().unwrap());
+                }
             }
         }
     }
 
     impl DOMReorder for VText {
-        fn reorder(&self, parent: &Element) {
-            let dom_ref = self.dom_ref().expect("Cannot re-order previously non-existent text node.");
+        fn move_to_last(&self, parent: &Element) {
+            let dom_ref = self.dom_ref().expect("Cannot append previously non-existent text node.");
             parent.append_child(dom_ref);
+        }
+
+        fn move_before(&self, parent: &Element, next: &Node) {
+            parent.insert_before(self.dom_ref().expect("Cannot insert previously non-existent text node."), next)
+                .unwrap();
         }
     }
 
     impl DOMRemove for VText {
-        fn remove(&self, parent: &Element) {
-            parent.remove_child(self.dom_ref().unwrap())
-                .expect("Cannot remove non-existent text node. But should have existed.");
+        fn remove(&mut self, parent: &Element) {
+            parent.remove_child(&self.dom_ref.take()
+                .expect("Cannot remove non-existent text node.")
+            ).unwrap();
+        }
+    }
+
+    impl NextDOMNode for VText {
+        fn next_dom_node(&self) -> Option<Node> {
+            self.dom_ref.clone().map(|it| it.into())
         }
     }
 }
