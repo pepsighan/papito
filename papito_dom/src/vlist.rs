@@ -1,8 +1,8 @@
-use CowStr;
-use indexmap::IndexMap;
-use std::fmt::{self, Formatter};
-use std::fmt::Display;
 use vnode::VNode;
+use std::fmt::Display;
+use std::fmt::{Formatter, self};
+use indexmap::IndexMap;
+use CowStr;
 
 type Key = CowStr;
 
@@ -51,16 +51,16 @@ impl From<Vec<VNode>> for VList {
     }
 }
 
-use CowStr;
-use stdweb::web::Element;
-use stdweb::web::Node;
-use super::VList;
-use vdiff::{DOMPatch, DOMRemove};
-use vdiff::DOMReorder;
-use vdiff::NextDOMNode;
-
 #[cfg(target_arch = "wasm32")]
 mod wasm {
+    use super::VList;
+    use vdiff::{DOMPatch, DOMRemove};
+    use stdweb::web::Element;
+    use vdiff::DOMReorder;
+    use vdiff::NextDOMNode;
+    use stdweb::web::Node;
+    use CowStr;
+
     impl DOMPatch<VList> for VList {
         fn patch(&mut self, parent: &Element, _: Option<&Node>, old_vnodes: Option<&mut VList>) {
             if let Some(old_vnodes) = old_vnodes {
