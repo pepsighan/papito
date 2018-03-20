@@ -59,7 +59,7 @@ mod wasm {
                 let text_node = document().create_text_node(&self.content);
                 self.dom_ref = Some(text_node);
                 if let Some(next) = next {
-                    parent.insert_before(self.dom_ref().unwrap(), next);
+                    parent.insert_before(self.dom_ref().unwrap(), next).unwrap();
                 } else {
                     parent.append_child(self.dom_ref().unwrap());
                 }

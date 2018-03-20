@@ -254,7 +254,7 @@ mod wasm {
         vel.child.patch(&el_node, None, None);
         vel.events.patch(&el_node, None, None);
         if let Some(next) = next {
-            parent.insert_before(&el_node, next);
+            parent.insert_before(&el_node, next).unwrap();
         } else {
             parent.append_child(&el_node);
         }
