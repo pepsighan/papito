@@ -62,11 +62,11 @@ mod wasm {
     use CowStr;
 
     impl DOMPatch<VList> for VList {
-        fn patch(&mut self, parent: &Element, _: Option<&Node>, old_vnodes: Option<&mut VList>) {
+        fn patch(&mut self, parent: &Element, next: Option<&Node>, old_vnodes: Option<&mut VList>) {
             if let Some(old_vnodes) = old_vnodes {
                 let mut patched_node_keys = vec![];
                 {
-                    let mut next_node = None;
+                    let mut next_node = next.map(|it| it.clone());
                     for (k, v) in self.children.iter_mut().rev() {
                         if let Some(pre_vnode) = old_vnodes.children.get_mut(k) {
                             // Patch if any old VNode found
@@ -114,15 +114,15 @@ mod wasm {
         for (k, new_node) in new_vnodes.children.iter().rev() {
             let new_pos = new_vnodes.position(k);
             let old_pos = old_vnodes.position(k);
+            console!(log, &format!("k: {}, new_pos: {:?}, old_pos: {:?}", k, new_pos, old_pos));
             if old_pos.is_none() {
                 // It is a new node and already inserted to the write place.
             } else if new_pos.unwrap() != old_pos.unwrap() {
                 if let Some(next_key) = next_key {
-                    // This node can be placed before the next one.
                     let next_vnode = new_vnodes.children.get(next_key).unwrap();
                     new_node.move_before(parent, &next_vnode.next_dom_node().unwrap());
                 } else {
-                    // since there is no node after it, do nothing. as all is alright.
+                    new_node.move_to_last(parent);
                 }
             }
             next_key = Some(k);
