@@ -1,4 +1,6 @@
 extern crate indexmap;
+#[cfg(target_arch = "wasm32")]
+#[macro_use]
 extern crate stdweb;
 
 use std::borrow::Cow;
@@ -16,7 +18,7 @@ mod vtext;
 mod velement;
 mod vlist;
 #[cfg(target_arch = "wasm32")]
-mod vdiff;
+pub mod vdiff;
 #[cfg(target_arch = "wasm32")]
 mod events;
 
