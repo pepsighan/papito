@@ -48,7 +48,7 @@ mod wasm {
     use stdweb::web::Node;
 
     impl DOMPatch<VText> for VText {
-        fn patch(&mut self, parent: &Element, old_vnode: Option<&mut VText>) {
+        fn patch(&mut self, parent: &Element, next: Option<&Node>, old_vnode: Option<&mut VText>) {
             if let Some(old_vnode) = old_vnode {
                 let text_node = old_vnode.dom_ref().unwrap().clone();
                 if old_vnode.content != self.content {
@@ -58,7 +58,11 @@ mod wasm {
             } else {
                 let text_node = document().create_text_node(&self.content);
                 self.dom_ref = Some(text_node);
-                parent.append_child(self.dom_ref().unwrap());
+                if let Some(next) = next {
+                    parent.insert_before(self.dom_ref().unwrap(), next);
+                } else {
+                    parent.append_child(self.dom_ref().unwrap());
+                }
             }
         }
     }

@@ -51,15 +51,15 @@ mod wasm {
     use stdweb::web::Node;
 
     macro_rules! match_for_vnode_patch {
-        ($against:ident, $parent:ident, $old_vnode:ident, [$( $variant:ident ),*] ) => {
+        ($against:ident, $parent:ident, $next:ident, $old_vnode:ident, [$( $variant:ident ),*] ) => {
             match *$against {
                 $(
                     VNode::$variant(ref mut node_like) => {
                         if let Some(&mut VNode::$variant(ref mut old_node_like)) = $old_vnode {
-                            node_like.patch($parent, Some(old_node_like));
+                            node_like.patch($parent, $next, Some(old_node_like));
                         } else {
                             $old_vnode.remove($parent);
-                            node_like.patch($parent, None);
+                            node_like.patch($parent, $next, None);
                         }
                     }
                 )*
@@ -68,8 +68,8 @@ mod wasm {
     }
 
     impl DOMPatch<VNode> for VNode {
-        fn patch(&mut self, parent: &Element, mut old_vnode: Option<&mut VNode>) {
-            match_for_vnode_patch!(self, parent, old_vnode, [Text, Element, List]);
+        fn patch(&mut self, parent: &Element, next: Option<&Node>, mut old_vnode: Option<&mut VNode>) {
+            match_for_vnode_patch!(self, parent, next, old_vnode, [Text, Element, List]);
         }
     }
 
