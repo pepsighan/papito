@@ -198,6 +198,8 @@ mod wasm {
     use vdiff::{DOMPatch, DOMRemove};
     use super::{VElement, ClassString, Attributes, Events};
     use vdiff::DOMReorder;
+    use vdiff::NextDOMNode;
+    use stdweb::web::Node;
 
     impl DOMPatch<VElement> for VElement {
         fn patch(&mut self, parent: &Element, old_vnode: Option<&mut VElement>) {
@@ -226,7 +228,7 @@ mod wasm {
             parent.append_child(dom_ref);
         }
 
-        fn insert_before<T: INode>(&self, parent: &Element, next: &T) {
+        fn insert_before(&self, parent: &Element, next: &Node) {
             parent.insert_before(self.dom_ref().expect("Cannot insert previously non-existent text node."), next)
                 .unwrap();
         }
@@ -311,6 +313,12 @@ mod wasm {
             for ev in self.0.iter_mut() {
                 ev.detach();
             }
+        }
+    }
+
+    impl NextDOMNode for VElement {
+        fn next_dom_node(&self) -> Option<Node> {
+            self.dom_ref.clone().map(|it| it.into())
         }
     }
 }

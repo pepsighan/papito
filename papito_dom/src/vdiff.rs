@@ -1,5 +1,5 @@
 use stdweb::web::Element;
-use stdweb::web::INode;
+use stdweb::web::Node;
 
 /// Required to update the DOM on the `parent` node. It is also tasked with Diffing along
 /// as it creates patches.
@@ -17,7 +17,11 @@ pub trait DOMRemove {
 pub trait DOMReorder {
     fn append_child(&self, parent: &Element);
 
-    fn insert_before<T: INode>(&self, parent: &Element, next: &T);
+    fn insert_before(&self, parent: &Element, next: &Node);
+}
+
+pub trait NextDOMNode {
+    fn next_dom_node(&self) -> Option<Node>;
 }
 
 impl<T, Q> DOMPatch<T> for Option<Q> where

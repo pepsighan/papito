@@ -46,8 +46,9 @@ mod wasm {
     use vdiff::{DOMPatch, DOMRemove};
     use stdweb::web::Element;
     use super::VNode;
-    use stdweb::web::INode;
     use vdiff::DOMReorder;
+    use vdiff::NextDOMNode;
+    use stdweb::web::Node;
 
     macro_rules! match_for_vnode_patch {
         ($against:ident, $parent:ident, $old_vnode:ident, [$( $variant:ident ),*] ) => {
@@ -91,11 +92,21 @@ mod wasm {
             }
         }
 
-        fn insert_before<T: INode>(&self, parent: &Element, next: &T) {
+        fn insert_before(&self, parent: &Element, next: &Node) {
             match *self {
                 VNode::Text(ref text) => text.insert_before(parent, next),
                 VNode::Element(ref element) => element.insert_before(parent, next),
                 VNode::List(ref list) => list.insert_before(parent, next)
+            }
+        }
+    }
+
+    impl NextDOMNode for VNode {
+        fn next_dom_node(&self) -> Option<Node> {
+            match *self {
+                VNode::Text(ref text) => text.next_dom_node(),
+                VNode::Element(ref element) => element.next_dom_node(),
+                VNode::List(ref list) => list.next_dom_node()
             }
         }
     }

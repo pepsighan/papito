@@ -56,40 +56,46 @@ mod wasm {
     use super::VList;
     use vdiff::{DOMPatch, DOMRemove};
     use stdweb::web::Element;
-    use indexmap::IndexMap;
-    use stdweb::web::INode;
     use vdiff::DOMReorder;
+    use vdiff::NextDOMNode;
+    use stdweb::web::Node;
 
     impl DOMPatch<VList> for VList {
         fn patch(&mut self, parent: &Element, old_vnodes: Option<&mut VList>) {
             if let Some(old_vnodes) = old_vnodes {
-                let mut added_node_keys = vec![];
                 let mut patched_node_keys = vec![];
                 {
                     for (k, v) in self.children.iter_mut() {
                         if let Some(pre_vnode) = old_vnodes.children.get_mut(k) {
+                            console!(log, &format!("patched: {:?}", v));
                             // Patch if any old VNode found
                             v.patch(parent, Some(pre_vnode));
                             patched_node_keys.push(k.clone());
                         } else {
-                            added_node_keys.push(k.clone());
-//                            v.patch(parent, None);
+                            v.patch(parent, None);
                         }
                     }
-                    // Remove any VNodes left out
-//                    for (_, v) in old_children {
-//                        v.remove(parent);
-//                    }
                 }
-//                let mut reorder_forced = false;
-//                for (k, v) in self.children.iter() {
-//                    if reorder_forced || self.position(k) != old_vnodes.position(k) {
-//                        v.reorder(parent);
-//                        if !reorder_forced {
-//                            reorder_forced = true;
-//                        }
-//                    }
-//                }
+                let mut next_key = None;
+                for (k, new_node) in self.children.iter().rev() {
+                    let new_pos = self.position(k);
+                    let old_pos = old_vnodes.position(k);
+                    if new_pos != old_pos {
+                        if let Some(next_key) = next_key {
+                            // This node can be placed before the next one.
+                            let next_vnode = self.children.get(next_key).unwrap();
+                            new_node.insert_before(parent, &next_vnode.next_dom_node().unwrap());
+                        } else {
+                            // since there is no node after it, do nothing. as all is alright.
+                        }
+                    }
+                    next_key = Some(k);
+                }
+                for (k, v) in old_vnodes.children.iter_mut() {
+                    if patched_node_keys.iter().position(|it| it == k).is_none() {
+                        v.remove(parent);
+                    }
+                }
             } else {
                 for (_, v) in self.children.iter_mut() {
                     v.patch(parent, None);
@@ -113,10 +119,16 @@ mod wasm {
             }
         }
 
-        fn insert_before<T: INode>(&self, parent: &Element, next: &T) {
+        fn insert_before(&self, parent: &Element, next: &Node) {
             for (_, v) in self.children.iter() {
                 v.insert_before(parent, next);
             }
+        }
+    }
+
+    impl NextDOMNode for VList {
+        fn next_dom_node(&self) -> Option<Node> {
+            self.children.iter().next().and_then(|it| it.1.next_dom_node())
         }
     }
 }
