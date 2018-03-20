@@ -198,7 +198,7 @@ mod wasm {
     use vdiff::{DOMPatch, DOMRemove};
     use super::{VElement, ClassString, Attributes, Events};
     use vdiff::DOMReorder;
-    use vdiff::NextDOMNode;
+    use vdiff::DOMNode;
     use stdweb::web::Node;
 
     impl DOMPatch<VElement> for VElement {
@@ -320,8 +320,8 @@ mod wasm {
         }
     }
 
-    impl NextDOMNode for VElement {
-        fn next_dom_node(&self) -> Option<Node> {
+    impl DOMNode for VElement {
+        fn dom_node(&self) -> Option<Node> {
             self.dom_ref.clone().map(|it| it.into())
         }
     }

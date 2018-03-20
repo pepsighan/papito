@@ -58,7 +58,7 @@ mod wasm {
     use vdiff::{DOMPatch, DOMRemove};
     use stdweb::web::Element;
     use vdiff::DOMReorder;
-    use vdiff::NextDOMNode;
+    use vdiff::DOMNode;
     use stdweb::web::Node;
     use CowStr;
 
@@ -76,8 +76,7 @@ mod wasm {
                         } else {
                             v.patch(parent, next_node.as_ref(), None);
                         }
-                        // should rename it to dom_node()
-                        next_node = v.next_dom_node();
+                        next_node = v.dom_node();
                     }
                 }
                 if has_dirty_order(&self, &old_vnodes) {
@@ -120,7 +119,7 @@ mod wasm {
             } else if new_pos.unwrap() != old_pos.unwrap() {
                 if let Some(next_key) = next_key {
                     let next_vnode = new_vnodes.children.get(next_key).unwrap();
-                    new_node.move_before(parent, &next_vnode.next_dom_node().unwrap());
+                    new_node.move_before(parent, &next_vnode.dom_node().unwrap());
                 } else {
                     new_node.move_to_last(parent);
                 }
@@ -159,9 +158,9 @@ mod wasm {
         }
     }
 
-    impl NextDOMNode for VList {
-        fn next_dom_node(&self) -> Option<Node> {
-            self.children.iter().next().and_then(|it| it.1.next_dom_node())
+    impl DOMNode for VList {
+        fn dom_node(&self) -> Option<Node> {
+            self.children.iter().next().and_then(|it| it.1.dom_node())
         }
     }
 }

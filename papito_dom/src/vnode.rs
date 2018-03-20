@@ -47,7 +47,7 @@ mod wasm {
     use stdweb::web::Element;
     use super::VNode;
     use vdiff::DOMReorder;
-    use vdiff::NextDOMNode;
+    use vdiff::DOMNode;
     use stdweb::web::Node;
 
     macro_rules! match_for_vnode_patch {
@@ -101,12 +101,12 @@ mod wasm {
         }
     }
 
-    impl NextDOMNode for VNode {
-        fn next_dom_node(&self) -> Option<Node> {
+    impl DOMNode for VNode {
+        fn dom_node(&self) -> Option<Node> {
             match *self {
-                VNode::Text(ref text) => text.next_dom_node(),
-                VNode::Element(ref element) => element.next_dom_node(),
-                VNode::List(ref list) => list.next_dom_node()
+                VNode::Text(ref text) => text.dom_node(),
+                VNode::Element(ref element) => element.dom_node(),
+                VNode::List(ref list) => list.dom_node()
             }
         }
     }

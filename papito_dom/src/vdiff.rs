@@ -20,8 +20,8 @@ pub trait DOMReorder {
     fn move_before(&self, parent: &Element, next: &Node);
 }
 
-pub trait NextDOMNode {
-    fn next_dom_node(&self) -> Option<Node>;
+pub trait DOMNode {
+    fn dom_node(&self) -> Option<Node>;
 }
 
 impl<T, Q> DOMPatch<T> for Option<Q> where

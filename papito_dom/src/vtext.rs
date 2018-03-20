@@ -44,7 +44,7 @@ mod wasm {
     use vdiff::{DOMPatch, DOMRemove};
     use super::VText;
     use vdiff::DOMReorder;
-    use vdiff::NextDOMNode;
+    use vdiff::DOMNode;
     use stdweb::web::Node;
 
     impl DOMPatch<VText> for VText {
@@ -87,8 +87,8 @@ mod wasm {
         }
     }
 
-    impl NextDOMNode for VText {
-        fn next_dom_node(&self) -> Option<Node> {
+    impl DOMNode for VText {
+        fn dom_node(&self) -> Option<Node> {
             self.dom_ref.clone().map(|it| it.into())
         }
     }
