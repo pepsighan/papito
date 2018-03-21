@@ -4,6 +4,7 @@ use vtext::VText;
 use std::fmt::Display;
 use std::fmt::{Formatter, self};
 use vcomponent::VComponent;
+use traits::InternalRender;
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum VNode {
@@ -44,6 +45,15 @@ impl_conversion_to_vnode!(Text, VText);
 impl_conversion_to_vnode!(Element, VElement);
 impl_conversion_to_vnode!(List, VList);
 impl_conversion_to_vnode!(Component, VComponent);
+
+impl InternalRender for VNode {
+    fn internal_render(self) -> VNode {
+        match self {
+            VNode::Component(component) => component.internal_render(),
+            vnode => vnode
+        }
+    }
+}
 
 #[cfg(target_arch = "wasm32")]
 mod wasm {

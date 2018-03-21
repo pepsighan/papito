@@ -22,6 +22,7 @@ mod vcomponent;
 pub mod vdiff;
 #[cfg(target_arch = "wasm32")]
 mod events;
+mod traits;
 
 pub mod prelude {
     pub use vnode::VNode;
