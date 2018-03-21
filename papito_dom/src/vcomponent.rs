@@ -1,10 +1,13 @@
 use vnode::VNode;
 use std::any::TypeId;
+use std::fmt::Display;
+use std::fmt::{Formatter, self};
 
+#[derive(Debug)]
 pub struct VComponent {
     type_id: TypeId,
     instance: Box<Lifecycle>,
-    rendered: Option<VNode>,
+    rendered: Option<Box<VNode>>,
 }
 
 pub trait Component: Lifecycle + Render {
@@ -41,6 +44,25 @@ impl VComponent {
             type_id: TypeId::of::<T>(),
             instance: Box::new(comp),
             rendered: None
+        }
+    }
+}
+
+impl Eq for VComponent {}
+
+impl PartialEq for VComponent {
+    fn eq(&self, other: &VComponent) -> bool {
+        self.type_id == other.type_id &&
+            self.rendered == other.rendered
+    }
+}
+
+impl Display for VComponent {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        if let Some(ref rendered) = self.rendered {
+            write!(f, "{}", rendered)
+        } else {
+            Ok(())
         }
     }
 }
