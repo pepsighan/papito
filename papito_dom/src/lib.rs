@@ -17,6 +17,7 @@ mod vnode;
 mod vtext;
 mod velement;
 mod vlist;
+mod vcomponent;
 #[cfg(target_arch = "wasm32")]
 pub mod vdiff;
 #[cfg(target_arch = "wasm32")]
