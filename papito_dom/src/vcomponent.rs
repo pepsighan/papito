@@ -105,15 +105,35 @@ mod wasm {
 
     impl DOMPatch<VComponent> for VComponent {
         fn patch(&mut self, parent: &Element, next: Option<&Node>, old_vnode: Option<&mut VComponent>) {
-            unimplemented!()
+            // Those that are new here, are unrendered and those old require re-rendering
+            if let Some(old_comp) = old_vnode {
+                if self.type_id == old_comp.type_id {
+                    // Throw out the newer component and reuse older
+                    // TODO: Push updated props
+                    old_comp.internal_render(parent, next);
+                } else {
+                    old_comp.remove(parent);
+                    create_new_component_render(self, parent, next);
+                }
+            } else {
+                create_new_component_render(self, parent, next);
+            }
         }
+    }
+
+    fn create_new_component_render(vcomp: &mut VComponent, parent: &Element, next: Option<&Node>) {
+        debug_assert!(vcomp.instance.is_none());
+        debug_assert!(vcomp.rendered.is_none());
+        // Requires an initial render as they are very new
+        vcomp.internal_render(parent, next);
     }
 
     impl DOMRemove for VComponent {
         fn remove(&mut self, parent: &Element) {
-            if let Some(ref mut rendered) = self.rendered {
-                rendered.remove(parent);
-            }
+            debug_assert!(self.instance.is_some());
+            debug_assert!(self.rendered.is_some());
+            self.rendered.as_mut().unwrap().remove(parent);
+            self.instance.as_mut().unwrap().destroyed();
         }
     }
 
