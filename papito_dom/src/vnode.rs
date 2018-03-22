@@ -4,7 +4,6 @@ use vtext::VText;
 use std::fmt::Display;
 use std::fmt::{Formatter, self};
 use vcomponent::VComponent;
-use traits::InternalRender;
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum VNode {
@@ -46,15 +45,6 @@ impl_conversion_to_vnode!(Element, VElement);
 impl_conversion_to_vnode!(List, VList);
 impl_conversion_to_vnode!(Component, VComponent);
 
-impl InternalRender for VNode {
-    fn internal_render(&mut self) {
-        match *self {
-            VNode::Component(ref mut component) => component.internal_render(),
-            _ => unreachable!()
-        }
-    }
-}
-
 #[cfg(target_arch = "wasm32")]
 mod wasm {
     use vdiff::{DOMPatch, DOMRemove};
@@ -63,6 +53,7 @@ mod wasm {
     use vdiff::DOMReorder;
     use vdiff::DOMNode;
     use stdweb::web::Node;
+    use traits::InternalRender;
 
     macro_rules! match_for_vnode_patch {
         ($against:ident, $parent:ident, $next:ident, $old_vnode:ident, [$( $variant:ident ),*] ) => {
@@ -125,6 +116,15 @@ mod wasm {
                 VNode::Element(ref element) => element.dom_node(),
                 VNode::List(ref list) => list.dom_node(),
                 VNode::Component(ref component) => component.dom_node()
+            }
+        }
+    }
+
+    impl InternalRender for VNode {
+        fn internal_render(&mut self, parent: &Element, next: Option<&Node>) {
+            match *self {
+                VNode::Component(ref mut component) => component.internal_render(parent, next),
+                _ => unreachable!()
             }
         }
     }

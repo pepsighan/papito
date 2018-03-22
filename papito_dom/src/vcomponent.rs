@@ -3,7 +3,6 @@ use std::any::TypeId;
 use std::fmt::Display;
 use std::fmt::{Formatter, self};
 use std::fmt::Debug;
-use traits::InternalRender;
 use std::rc::Rc;
 use std::cell::RefCell;
 
@@ -89,15 +88,6 @@ impl Debug for VComponent {
     }
 }
 
-impl InternalRender for VComponent {
-    fn internal_render(&mut self) {
-        if self.instance.is_none() {
-            self.init();
-        }
-        let instance = self.instance.as_mut().unwrap();
-    }
-}
-
 #[cfg(target_arch = "wasm32")]
 mod wasm {
     use vdiff::DOMPatch;
@@ -107,6 +97,7 @@ mod wasm {
     use vdiff::DOMRemove;
     use vdiff::DOMReorder;
     use vdiff::DOMNode;
+    use traits::InternalRender;
 
     impl DOMPatch<VComponent> for VComponent {
         fn patch(&mut self, parent: &Element, next: Option<&Node>, old_vnode: Option<&mut VComponent>) {
@@ -133,6 +124,19 @@ mod wasm {
     impl DOMNode for VComponent {
         fn dom_node(&self) -> Option<Node> {
             unimplemented!()
+        }
+    }
+
+    impl InternalRender for VComponent {
+        fn internal_render(&mut self, parent: &Element, next: Option<&Node>) {
+            if self.instance.is_none() {
+                self.init();
+            }
+            let instance = self.instance.as_mut().unwrap();
+            if self.rendered.is_none() {
+                let mut rendered = instance.render();
+                rendered.patch(parent, next, None);
+            }
         }
     }
 }
