@@ -51,6 +51,13 @@ impl VComponent {
             state_changed: Rc::new(RefCell::new(false)),
         }
     }
+
+    fn init(&mut self) {
+        let initializer = &self.initializer;
+        let mut instance = initializer();
+        instance.created();
+        self.instance = Some(instance);
+    }
 }
 
 impl Eq for VComponent {}
@@ -83,8 +90,11 @@ impl Debug for VComponent {
 }
 
 impl InternalRender for VComponent {
-    fn internal_render(&mut self) -> VNode {
-        unimplemented!()
+    fn internal_render(&mut self) {
+        if self.instance.is_none() {
+            self.init();
+        }
+        let instance = self.instance.as_mut().unwrap();
     }
 }
 
