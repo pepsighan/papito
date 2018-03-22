@@ -5,6 +5,8 @@ use std::fmt::{Formatter, self};
 use std::fmt::Debug;
 use std::rc::Rc;
 use std::cell::RefCell;
+use traits::Component;
+use traits::Lifecycle;
 
 pub struct VComponent {
     type_id: TypeId,
@@ -12,30 +14,6 @@ pub struct VComponent {
     initializer: Box<Fn() -> Box<Lifecycle>>,
     rendered: Option<Box<VNode>>,
     state_changed: Rc<RefCell<bool>>,
-}
-
-pub trait Component: Lifecycle {
-    fn create() -> Self;
-
-    fn update(&mut self);
-
-    fn destroy(&mut self);
-}
-
-pub trait Lifecycle: Render {
-    fn created(&mut self);
-
-    fn mounted(&mut self);
-
-    fn before_update(&mut self);
-
-    fn updated(&mut self);
-
-    fn destroyed(&mut self);
-}
-
-pub trait Render {
-    fn render(&self) -> VNode;
 }
 
 impl VComponent {

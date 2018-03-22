@@ -6,3 +6,27 @@ use stdweb::web::{Element, Node};
 pub trait InternalRender {
     fn internal_render(&mut self, parent: &Element, next: Option<&Node>);
 }
+
+pub trait Component: Lifecycle {
+    fn create() -> Self;
+
+    fn update(&mut self);
+
+    fn destroy(&mut self);
+}
+
+pub trait Lifecycle: Render {
+    fn created(&mut self);
+
+    fn mounted(&mut self);
+
+    fn before_update(&mut self);
+
+    fn updated(&mut self);
+
+    fn destroyed(&mut self);
+}
+
+pub trait Render {
+    fn render(&self) -> VNode;
+}

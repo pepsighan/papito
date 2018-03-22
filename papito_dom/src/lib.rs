@@ -28,6 +28,7 @@ pub mod prelude {
     pub use vnode::VNode;
     #[cfg(target_arch = "wasm32")]
     pub use events::DOMEventListener;
+    pub use traits::{Render, Component, Lifecycle};
 }
 
 pub fn txt<T: Into<VText>>(txt: T) -> VText {
