@@ -3,12 +3,12 @@ use vnode::VNode;
 use stdweb::web::{Element, Node};
 
 #[cfg(target_arch = "wasm32")]
-pub trait InternalRender {
-    fn internal_render(&mut self, parent: &Element, next: Option<&Node>);
+pub trait DOMRender {
+    fn dom_render(&mut self, parent: &Element, next: Option<&Node>);
 }
 
-pub trait StringRender {
-    fn string_render(&mut self);
+pub trait ServerRender {
+    fn server_render(&mut self);
 }
 
 pub trait RenderToString {
@@ -35,9 +35,9 @@ pub trait Render {
     fn render(&self) -> VNode;
 }
 
-impl<T: StringRender + ToString> RenderToString for T {
+impl<T: ServerRender + ToString> RenderToString for T {
     fn render_to_string(&mut self) -> String {
-        self.string_render();
+        self.server_render();
         self.to_string()
     }
 }

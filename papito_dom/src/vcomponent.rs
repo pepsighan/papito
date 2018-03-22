@@ -7,7 +7,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use traits::Component;
 use traits::Lifecycle;
-use traits::StringRender;
+use traits::ServerRender;
 
 pub struct VComponent {
     type_id: TypeId,
@@ -77,8 +77,8 @@ impl Debug for VComponent {
     }
 }
 
-impl StringRender for VComponent {
-    fn string_render(&mut self) {
+impl ServerRender for VComponent {
+    fn server_render(&mut self) {
         debug_assert!(self.instance.is_none());
         debug_assert!(self.rendered.is_none());
         self.init();
@@ -97,7 +97,7 @@ mod wasm {
     use vdiff::DOMRemove;
     use vdiff::DOMReorder;
     use vdiff::DOMNode;
-    use traits::InternalRender;
+    use traits::DOMRender;
 
     impl DOMPatch<VComponent> for VComponent {
         fn patch(&mut self, parent: &Element, next: Option<&Node>, old_vnode: Option<&mut VComponent>) {
@@ -106,7 +106,7 @@ mod wasm {
                 if self.type_id == old_comp.type_id {
                     // Throw out the newer component and reuse older
                     // TODO: Push updated props
-                    old_comp.internal_render(parent, next);
+                    old_comp.dom_render(parent, next);
                 } else {
                     old_comp.remove(parent);
                     create_new_component_render(self, parent, next);
@@ -121,7 +121,7 @@ mod wasm {
         debug_assert!(vcomp.instance.is_none());
         debug_assert!(vcomp.rendered.is_none());
         // Requires an initial render as they are very new
-        vcomp.internal_render(parent, next);
+        vcomp.dom_render(parent, next);
     }
 
     impl DOMRemove for VComponent {
@@ -153,8 +153,8 @@ mod wasm {
         }
     }
 
-    impl InternalRender for VComponent {
-        fn internal_render(&mut self, parent: &Element, next: Option<&Node>) {
+    impl DOMRender for VComponent {
+        fn dom_render(&mut self, parent: &Element, next: Option<&Node>) {
             if self.instance.is_none() {
                 self.init();
             }
@@ -176,7 +176,7 @@ mod wasm {
                     instance.updated();
                 } else {
                     // No change. Propagate till a changed/new component is found
-                    self.rendered.as_mut().unwrap().internal_render(parent, next);
+                    self.rendered.as_mut().unwrap().dom_render(parent, next);
                 }
             }
         }

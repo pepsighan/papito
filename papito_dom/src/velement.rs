@@ -7,7 +7,7 @@ use stdweb::web::Element;
 #[cfg(target_arch = "wasm32")]
 use events::DOMEvent;
 use vnode::VNode;
-use traits::StringRender;
+use traits::ServerRender;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct ClassString(CowStr);
@@ -192,10 +192,10 @@ fn split_into_class_and_attrs(mut attrs: Attributes) -> (Option<ClassString>, Op
     (class, if attrs.0.len() == 0 { None } else { Some(attrs) })
 }
 
-impl StringRender for VElement {
-    fn string_render(&mut self) {
+impl ServerRender for VElement {
+    fn server_render(&mut self) {
         if let Some(ref mut child) = self.child {
-            child.string_render();
+            child.server_render();
         }
     }
 }
@@ -209,7 +209,7 @@ mod wasm {
     use vdiff::DOMReorder;
     use vdiff::DOMNode;
     use stdweb::web::Node;
-    use traits::InternalRender;
+    use traits::DOMRender;
 
     impl DOMPatch<VElement> for VElement {
         fn patch(&mut self, parent: &Element, next: Option<&Node>, old_vnode: Option<&mut VElement>) {
@@ -336,10 +336,10 @@ mod wasm {
         }
     }
 
-    impl InternalRender for VElement {
-        fn internal_render(&mut self, parent: &Element, next: Option<&Node>) {
+    impl DOMRender for VElement {
+        fn dom_render(&mut self, parent: &Element, next: Option<&Node>) {
             if let Some(ref mut child) = self.child {
-                child.internal_render(parent, next);
+                child.dom_render(parent, next);
             }
         }
     }

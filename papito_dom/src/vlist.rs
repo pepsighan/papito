@@ -3,7 +3,7 @@ use std::fmt::Display;
 use std::fmt::{Formatter, self};
 use indexmap::IndexMap;
 use CowStr;
-use traits::StringRender;
+use traits::ServerRender;
 
 type Key = CowStr;
 
@@ -53,10 +53,10 @@ impl From<Vec<VNode>> for VList {
     }
 }
 
-impl StringRender for VList {
-    fn string_render(&mut self) {
+impl ServerRender for VList {
+    fn server_render(&mut self) {
         for (_, child) in self.children.iter_mut() {
-            child.string_render();
+            child.server_render();
         }
     }
 }
@@ -70,7 +70,7 @@ mod wasm {
     use vdiff::DOMNode;
     use stdweb::web::Node;
     use CowStr;
-    use traits::InternalRender;
+    use traits::DOMRender;
 
     impl DOMPatch<VList> for VList {
         fn patch(&mut self, parent: &Element, next: Option<&Node>, old_vnodes: Option<&mut VList>) {
@@ -174,10 +174,10 @@ mod wasm {
         }
     }
 
-    impl InternalRender for VList {
-        fn internal_render(&mut self, parent: &Element, next: Option<&Node>) {
+    impl DOMRender for VList {
+        fn dom_render(&mut self, parent: &Element, next: Option<&Node>) {
             for (_, child) in self.children.iter_mut() {
-                child.internal_render(parent, next)
+                child.dom_render(parent, next)
             }
         }
     }

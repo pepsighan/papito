@@ -10,7 +10,7 @@ use velement::VElement;
 use vlist::VList;
 #[cfg(target_arch = "wasm32")]
 use stdweb::web::event::ConcreteEvent;
-use traits::{Component, StringRender};
+use traits::Component;
 use vcomponent::VComponent;
 
 type CowStr = Cow<'static, str>;
