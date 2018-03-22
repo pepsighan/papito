@@ -65,7 +65,7 @@ pub fn ev<E, T, F>(listener: E) -> Box<events::DOMEvent> where
 macro_rules! h {
     // Creates a component vnode
     (comp $t:tt) => {
-        comp::<$t>()
+        $crate::h($crate::comp::<$t>())
     };
     // Creates vnodes from a vec
     (vec $n:expr) => {
@@ -144,6 +144,7 @@ mod test {
     use std::borrow::Cow;
     #[cfg(target_arch = "wasm32")]
     use stdweb::web::event::InputEvent;
+    use traits::{Component, Lifecycle, Render};
 
     #[test]
     fn should_create_text_vnode() {
@@ -349,6 +350,27 @@ mod test {
             ),
             node
         );
+    }
+
+    #[test]
+    fn should_create_a_component() {
+        struct Button;
+
+        impl Component for Button {
+            fn create(_: Box<Fn()>) -> Self {
+                Button
+            }
+        }
+
+        impl Lifecycle for Button {}
+        impl Render for Button {
+            fn render(&self) -> VNode {
+                h!("button", h!("Click"))
+            }
+        }
+
+        let node = h!(comp Button);
+
     }
 
     #[test]
