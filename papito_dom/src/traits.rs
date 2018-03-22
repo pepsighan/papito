@@ -11,6 +11,10 @@ pub trait StringRender {
     fn string_render(&mut self);
 }
 
+pub trait RenderToString {
+    fn render_to_string(&mut self) -> String;
+}
+
 pub trait Component: Lifecycle {
     fn create(notifier: Box<Fn()>) -> Self;
 }
@@ -29,4 +33,11 @@ pub trait Lifecycle: Render {
 
 pub trait Render {
     fn render(&self) -> VNode;
+}
+
+impl<T: StringRender + ToString> RenderToString for T {
+    fn render_to_string(&mut self) -> String {
+        self.string_render();
+        self.to_string()
+    }
 }

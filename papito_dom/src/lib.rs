@@ -10,7 +10,7 @@ use velement::VElement;
 use vlist::VList;
 #[cfg(target_arch = "wasm32")]
 use stdweb::web::event::ConcreteEvent;
-use traits::Component;
+use traits::{Component, StringRender};
 use vcomponent::VComponent;
 
 type CowStr = Cow<'static, str>;
@@ -144,7 +144,7 @@ mod test {
     use std::borrow::Cow;
     #[cfg(target_arch = "wasm32")]
     use stdweb::web::event::InputEvent;
-    use traits::{Component, Lifecycle, Render};
+    use traits::{Component, Lifecycle, Render, RenderToString};
     use vcomponent::VComponent;
 
     #[test]
@@ -438,5 +438,26 @@ mod test {
             h!("div", _),
         ]);
         assert_eq!(node.to_string(), "<div></div><div></div><div></div><div></div>");
+    }
+
+    #[test]
+    fn should_print_html_for_component() {
+        struct Button;
+
+        impl Component for Button {
+            fn create(_: Box<Fn()>) -> Self {
+                Button
+            }
+        }
+
+        impl Lifecycle for Button {}
+        impl Render for Button {
+            fn render(&self) -> VNode {
+                h!("button", h!("Click"))
+            }
+        }
+
+        let mut node = h!(comp Button);
+        assert_eq!(node.render_to_string(), "<button>Click</button>");
     }
 }
