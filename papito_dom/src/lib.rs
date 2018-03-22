@@ -460,4 +460,40 @@ mod test {
         let mut node = h!(comp Button);
         assert_eq!(node.render_to_string(), "<button>Click</button>");
     }
+
+    #[test]
+    fn should_print_html_for_nested_components() {
+        struct Button;
+
+        impl Component for Button {
+            fn create(_: Box<Fn()>) -> Self {
+                Button
+            }
+        }
+
+        impl Lifecycle for Button {}
+        impl Render for Button {
+            fn render(&self) -> VNode {
+                h!("button", h!("Click"))
+            }
+        }
+
+        struct Div;
+
+        impl Component for Div {
+            fn create(_: Box<Fn()>) -> Self {
+                Div
+            }
+        }
+
+        impl Lifecycle for Div {}
+        impl Render for Div {
+            fn render(&self) -> VNode {
+                h!("div", h!(comp Button))
+            }
+        }
+
+        let mut node = h!(comp Div);
+        assert_eq!(node.render_to_string(), "<div><button>Click</button></div>");
+    }
 }

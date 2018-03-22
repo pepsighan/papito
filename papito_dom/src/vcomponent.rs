@@ -84,6 +84,7 @@ impl ServerRender for VComponent {
         self.init();
         let instance = self.instance.as_mut().unwrap();
         let mut rendered = instance.render();
+        rendered.server_render();
         self.rendered = Some(Box::new(rendered));
     }
 }
