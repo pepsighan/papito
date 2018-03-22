@@ -3,12 +3,15 @@ use vlist::VList;
 use vtext::VText;
 use std::fmt::Display;
 use std::fmt::{Formatter, self};
+use vcomponent::VComponent;
+use traits::ServerRender;
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum VNode {
     Text(VText),
     Element(VElement),
     List(VList),
+    Component(VComponent)
 }
 
 impl VNode {
@@ -22,7 +25,8 @@ impl Display for VNode {
         match *self {
             VNode::Text(ref text) => write!(f, "{}", text),
             VNode::Element(ref element) => write!(f, "{}", element),
-            VNode::List(ref list) => write!(f, "{}", list)
+            VNode::List(ref list) => write!(f, "{}", list),
+            VNode::Component(ref component) => write!(f, "{}", component)
         }
     }
 }
@@ -40,6 +44,18 @@ macro_rules! impl_conversion_to_vnode {
 impl_conversion_to_vnode!(Text, VText);
 impl_conversion_to_vnode!(Element, VElement);
 impl_conversion_to_vnode!(List, VList);
+impl_conversion_to_vnode!(Component, VComponent);
+
+impl ServerRender for VNode {
+    fn server_render(&mut self) {
+        match *self {
+            VNode::Component(ref mut component) => component.server_render(),
+            VNode::List(ref mut list) => list.server_render(),
+            VNode::Element(ref mut element) => element.server_render(),
+            VNode::Text(_) => {}
+        }
+    }
+}
 
 #[cfg(target_arch = "wasm32")]
 mod wasm {
@@ -49,6 +65,7 @@ mod wasm {
     use vdiff::DOMReorder;
     use vdiff::DOMNode;
     use stdweb::web::Node;
+    use traits::DOMRender;
 
     macro_rules! match_for_vnode_patch {
         ($against:ident, $parent:ident, $next:ident, $old_vnode:ident, [$( $variant:ident ),*] ) => {
@@ -69,7 +86,7 @@ mod wasm {
 
     impl DOMPatch<VNode> for VNode {
         fn patch(&mut self, parent: &Element, next: Option<&Node>, mut old_vnode: Option<&mut VNode>) {
-            match_for_vnode_patch!(self, parent, next, old_vnode, [Text, Element, List]);
+            match_for_vnode_patch!(self, parent, next, old_vnode, [Text, Element, List, Component]);
         }
     }
 
@@ -78,7 +95,8 @@ mod wasm {
             match *self {
                 VNode::Text(ref mut text) => text.remove(parent),
                 VNode::Element(ref mut element) => element.remove(parent),
-                VNode::List(ref mut list) => list.remove(parent)
+                VNode::List(ref mut list) => list.remove(parent),
+                VNode::Component(ref mut component) => component.remove(parent)
             }
         }
     }
@@ -88,7 +106,8 @@ mod wasm {
             match *self {
                 VNode::Text(ref text) => text.move_to_last(parent),
                 VNode::Element(ref element) => element.move_to_last(parent),
-                VNode::List(ref list) => list.move_to_last(parent)
+                VNode::List(ref list) => list.move_to_last(parent),
+                VNode::Component(ref component) => component.move_to_last(parent)
             }
         }
 
@@ -96,7 +115,8 @@ mod wasm {
             match *self {
                 VNode::Text(ref text) => text.move_before(parent, next),
                 VNode::Element(ref element) => element.move_before(parent, next),
-                VNode::List(ref list) => list.move_before(parent, next)
+                VNode::List(ref list) => list.move_before(parent, next),
+                VNode::Component(ref component) => component.move_before(parent, next)
             }
         }
     }
@@ -106,7 +126,19 @@ mod wasm {
             match *self {
                 VNode::Text(ref text) => text.dom_node(),
                 VNode::Element(ref element) => element.dom_node(),
-                VNode::List(ref list) => list.dom_node()
+                VNode::List(ref list) => list.dom_node(),
+                VNode::Component(ref component) => component.dom_node()
+            }
+        }
+    }
+
+    impl DOMRender for VNode {
+        fn dom_render(&mut self, parent: &Element, next: Option<&Node>) {
+            match *self {
+                VNode::Component(ref mut component) => component.dom_render(parent, next),
+                VNode::List(ref mut list) => list.dom_render(parent, next),
+                VNode::Element(ref mut element) => element.dom_render(parent, next),
+                VNode::Text(_) => {}
             }
         }
     }

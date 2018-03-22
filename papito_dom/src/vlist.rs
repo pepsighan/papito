@@ -3,6 +3,7 @@ use std::fmt::Display;
 use std::fmt::{Formatter, self};
 use indexmap::IndexMap;
 use CowStr;
+use traits::ServerRender;
 
 type Key = CowStr;
 
@@ -52,6 +53,14 @@ impl From<Vec<VNode>> for VList {
     }
 }
 
+impl ServerRender for VList {
+    fn server_render(&mut self) {
+        for (_, child) in self.children.iter_mut() {
+            child.server_render();
+        }
+    }
+}
+
 #[cfg(target_arch = "wasm32")]
 mod wasm {
     use super::VList;
@@ -61,6 +70,7 @@ mod wasm {
     use vdiff::DOMNode;
     use stdweb::web::Node;
     use CowStr;
+    use traits::DOMRender;
 
     impl DOMPatch<VList> for VList {
         fn patch(&mut self, parent: &Element, next: Option<&Node>, old_vnodes: Option<&mut VList>) {
@@ -161,6 +171,14 @@ mod wasm {
     impl DOMNode for VList {
         fn dom_node(&self) -> Option<Node> {
             self.children.iter().next().and_then(|it| it.1.dom_node())
+        }
+    }
+
+    impl DOMRender for VList {
+        fn dom_render(&mut self, parent: &Element, next: Option<&Node>) {
+            for (_, child) in self.children.iter_mut() {
+                child.dom_render(parent, next)
+            }
         }
     }
 }

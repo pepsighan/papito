@@ -10,6 +10,8 @@ use velement::VElement;
 use vlist::VList;
 #[cfg(target_arch = "wasm32")]
 use stdweb::web::event::ConcreteEvent;
+use traits::Component;
+use vcomponent::VComponent;
 
 type CowStr = Cow<'static, str>;
 
@@ -17,15 +19,22 @@ mod vnode;
 mod vtext;
 mod velement;
 mod vlist;
+mod vcomponent;
 #[cfg(target_arch = "wasm32")]
 pub mod vdiff;
 #[cfg(target_arch = "wasm32")]
 mod events;
+mod traits;
 
 pub mod prelude {
     pub use vnode::VNode;
     #[cfg(target_arch = "wasm32")]
     pub use events::DOMEventListener;
+    pub use traits::{Render, Component, Lifecycle, RenderToString};
+}
+
+pub fn comp<T: Component + 'static>() -> VComponent {
+    VComponent::new::<T>()
 }
 
 pub fn txt<T: Into<VText>>(txt: T) -> VText {
@@ -54,8 +63,12 @@ pub fn ev<E, T, F>(listener: E) -> Box<events::DOMEvent> where
 
 #[macro_export]
 macro_rules! h {
+    // Creates a component vnode
+    (comp $t:tt) => {
+        $crate::h($crate::comp::<$t>())
+    };
     // Creates vnodes from a vec
-    (vec $n:expr $(,)*) => {
+    (vec $n:expr) => {
         $crate::h($crate::li($n));
     };
     // Creates keyed vnodes
@@ -67,7 +80,7 @@ macro_rules! h {
         $crate::h($crate::li(vec![ $( $v ),* ]))
     };
     // Creates text vnode
-    ($n:expr $(,)*) => {
+    ($n:expr) => {
         $crate::h($crate::txt($n))
     };
     // Creates an empty element
@@ -131,6 +144,8 @@ mod test {
     use std::borrow::Cow;
     #[cfg(target_arch = "wasm32")]
     use stdweb::web::event::InputEvent;
+    use traits::{Component, Lifecycle, Render, RenderToString};
+    use vcomponent::VComponent;
 
     #[test]
     fn should_create_text_vnode() {
@@ -339,6 +354,30 @@ mod test {
     }
 
     #[test]
+    fn should_create_a_component() {
+        struct Button;
+
+        impl Component for Button {
+            fn create(_: Box<Fn()>) -> Self {
+                Button
+            }
+        }
+
+        impl Lifecycle for Button {}
+        impl Render for Button {
+            fn render(&self) -> VNode {
+                h!("button", h!("Click"))
+            }
+        }
+
+        let node = h!(comp Button);
+        assert_eq!(
+            VNode::Component(VComponent::new::<Button>()),
+            node
+        );
+    }
+
+    #[test]
     fn should_print_html_for_empty_div() {
         let node = h!("div", _);
         assert_eq!(node.to_string(), "<div></div>");
@@ -399,5 +438,62 @@ mod test {
             h!("div", _),
         ]);
         assert_eq!(node.to_string(), "<div></div><div></div><div></div><div></div>");
+    }
+
+    #[test]
+    fn should_print_html_for_component() {
+        struct Button;
+
+        impl Component for Button {
+            fn create(_: Box<Fn()>) -> Self {
+                Button
+            }
+        }
+
+        impl Lifecycle for Button {}
+        impl Render for Button {
+            fn render(&self) -> VNode {
+                h!("button", h!("Click"))
+            }
+        }
+
+        let mut node = h!(comp Button);
+        assert_eq!(node.render_to_string(), "<button>Click</button>");
+    }
+
+    #[test]
+    fn should_print_html_for_nested_components() {
+        struct Button;
+
+        impl Component for Button {
+            fn create(_: Box<Fn()>) -> Self {
+                Button
+            }
+        }
+
+        impl Lifecycle for Button {}
+        impl Render for Button {
+            fn render(&self) -> VNode {
+                h!("button", h!("Click"))
+            }
+        }
+
+        struct Div;
+
+        impl Component for Div {
+            fn create(_: Box<Fn()>) -> Self {
+                Div
+            }
+        }
+
+        impl Lifecycle for Div {}
+        impl Render for Div {
+            fn render(&self) -> VNode {
+                h!("div", h!(comp Button))
+            }
+        }
+
+        let mut node = h!(comp Div);
+        assert_eq!(node.render_to_string(), "<div><button>Click</button></div>");
     }
 }
