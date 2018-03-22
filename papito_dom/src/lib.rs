@@ -21,7 +21,7 @@ mod velement;
 mod vlist;
 mod vcomponent;
 #[cfg(target_arch = "wasm32")]
-pub mod vdiff;
+mod vdiff;
 #[cfg(target_arch = "wasm32")]
 mod events;
 mod traits;
