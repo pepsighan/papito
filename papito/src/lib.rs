@@ -5,15 +5,43 @@ use papito_dom::prelude::{Component, VNode, DOMRender};
 use papito_dom::{comp, h};
 use stdweb::web::{document, Element, INonElementParentNode};
 use std::ops::Deref;
+use std::sync::mpsc::{channel, Sender, Receiver};
+
+struct RenderRequest {
+    tx: Sender<bool>,
+    rx: Receiver<bool>,
+}
+
+impl RenderRequest {
+    fn new() -> RenderRequest {
+        let (tx, rx) = channel();
+        RenderRequest {
+            rx,
+            tx,
+        }
+    }
+
+    fn sender(&self) -> RenderRequestSender {
+        RenderRequestSender {
+            tx: self.tx.clone()
+        }
+    }
+}
+
+struct RenderRequestSender {
+    tx: Sender<bool>
+}
 
 pub struct App {
-    vdom: VNode
+    vdom: VNode,
+    render_req: RenderRequest
 }
 
 impl App {
     pub fn new<T: Component + 'static>() -> App {
         App {
-            vdom: h(comp::<T>())
+            vdom: h(comp::<T>()),
+            render_req: RenderRequest::new()
         }
     }
 
