@@ -7,6 +7,10 @@ pub trait InternalRender {
     fn internal_render(&mut self, parent: &Element, next: Option<&Node>);
 }
 
+pub trait StringRender {
+    fn string_render(&mut self);
+}
+
 pub trait Component: Lifecycle {
     fn create(notifier: Box<Fn()>) -> Self;
 }

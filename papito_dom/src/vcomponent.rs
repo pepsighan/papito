@@ -7,6 +7,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use traits::Component;
 use traits::Lifecycle;
+use traits::StringRender;
 
 pub struct VComponent {
     type_id: TypeId,
@@ -73,6 +74,17 @@ impl Debug for VComponent {
         } else {
             Ok(())
         }
+    }
+}
+
+impl StringRender for VComponent {
+    fn string_render(&mut self) {
+        debug_assert!(self.instance.is_none());
+        debug_assert!(self.rendered.is_none());
+        self.init();
+        let instance = self.instance.as_mut().unwrap();
+        let mut rendered = instance.render();
+        self.rendered = Some(Box::new(rendered));
     }
 }
 

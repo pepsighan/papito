@@ -3,6 +3,7 @@ use std::fmt::Display;
 use std::fmt::{Formatter, self};
 use indexmap::IndexMap;
 use CowStr;
+use traits::StringRender;
 
 type Key = CowStr;
 
@@ -49,6 +50,14 @@ impl From<Vec<VNode>> for VList {
             .map(|(k, v)| (k.to_string().into(), v))
             .collect();
         VList::new(children)
+    }
+}
+
+impl StringRender for VList {
+    fn string_render(&mut self) {
+        for (_, child) in self.children.iter_mut() {
+            child.string_render();
+        }
     }
 }
 

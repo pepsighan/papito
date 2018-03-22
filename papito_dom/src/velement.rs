@@ -7,6 +7,7 @@ use stdweb::web::Element;
 #[cfg(target_arch = "wasm32")]
 use events::DOMEvent;
 use vnode::VNode;
+use traits::StringRender;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct ClassString(CowStr);
@@ -189,6 +190,14 @@ impl<A> From<(A, VNode)> for VElement where
 fn split_into_class_and_attrs(mut attrs: Attributes) -> (Option<ClassString>, Option<Attributes>) {
     let class = attrs.0.swap_remove("class").map(|it| it.into());
     (class, if attrs.0.len() == 0 { None } else { Some(attrs) })
+}
+
+impl StringRender for VElement {
+    fn string_render(&mut self) {
+        if let Some(ref mut child) = self.child {
+            child.string_render();
+        }
+    }
 }
 
 #[cfg(target_arch = "wasm32")]
