@@ -12,15 +12,15 @@ pub trait Component: Lifecycle {
 }
 
 pub trait Lifecycle: Render {
-    fn created(&mut self);
+    fn created(&mut self) {}
 
-    fn mounted(&mut self);
+    fn mounted(&mut self) {}
 
-    fn before_update(&mut self);
+    fn before_update(&mut self) {}
 
-    fn updated(&mut self);
+    fn updated(&mut self) {}
 
-    fn destroyed(&mut self);
+    fn destroyed(&mut self) {}
 }
 
 pub trait Render {
