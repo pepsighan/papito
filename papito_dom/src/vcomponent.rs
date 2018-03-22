@@ -57,6 +57,10 @@ impl VComponent {
         instance.created();
         self.instance = Some(instance);
     }
+
+    fn state_changed(&self) -> bool {
+        *self.state_changed.borrow()
+    }
 }
 
 impl Eq for VComponent {}
@@ -132,10 +136,26 @@ mod wasm {
             if self.instance.is_none() {
                 self.init();
             }
-            let instance = self.instance.as_mut().unwrap();
             if self.rendered.is_none() {
+                // First time being rendered
+                let instance = self.instance.as_mut().unwrap();
                 let mut rendered = instance.render();
                 rendered.patch(parent, next, None);
+                self.rendered = Some(Box::new(rendered));
+                instance.mounted();
+            } else {
+                if self.state_changed() {
+                    // TODO: Support props
+                    let mut old_rendered = self.rendered.take().unwrap();
+                    let instance = self.instance.as_mut().unwrap();
+                    let mut newly_rendered = instance.render();
+                    newly_rendered.patch(parent, next, Some(&mut *old_rendered));
+                    self.rendered = Some(Box::new(newly_rendered));
+                    instance.updated();
+                } else {
+                    // No change. Propagate till a changed/new component is found
+                    self.rendered.as_mut().unwrap().internal_render(parent, next);
+                }
             }
         }
     }
