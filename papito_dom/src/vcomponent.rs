@@ -111,23 +111,29 @@ mod wasm {
 
     impl DOMRemove for VComponent {
         fn remove(&mut self, parent: &Element) {
-            unimplemented!()
+            if let Some(ref mut rendered) = self.rendered {
+                rendered.remove(parent);
+            }
         }
     }
 
     impl DOMReorder for VComponent {
         fn move_to_last(&self, parent: &Element) {
-            unimplemented!()
+            if let Some(ref rendered) = self.rendered {
+                rendered.move_to_last(parent);
+            }
         }
 
         fn move_before(&self, parent: &Element, next: &Node) {
-            unimplemented!()
+            if let Some(ref rendered) = self.rendered {
+                rendered.move_before(parent, next);
+            }
         }
     }
 
     impl DOMNode for VComponent {
         fn dom_node(&self) -> Option<Node> {
-            unimplemented!()
+            self.rendered.as_ref().and_then(|it| it.dom_node())
         }
     }
 
