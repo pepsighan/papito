@@ -4,24 +4,26 @@ use std::fmt::Display;
 use std::fmt::{Formatter, self};
 use std::fmt::Debug;
 use traits::InternalRender;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 pub struct VComponent {
     type_id: TypeId,
-    instance: Box<Lifecycle>,
+    instance: Option<Box<Lifecycle>>,
+    initializer: Box<Fn() -> Box<Lifecycle>>,
     rendered: Option<Box<VNode>>,
+    state_changed: Rc<RefCell<bool>>,
 }
 
-pub trait Component: Lifecycle + Render {
-    type Props;
-
-    fn create(props: Self::Props) -> Self;
+pub trait Component: Lifecycle {
+    fn create() -> Self;
 
     fn update(&mut self);
 
     fn destroy(&mut self);
 }
 
-pub trait Lifecycle {
+pub trait Lifecycle: Render {
     fn created(&mut self);
 
     fn mounted(&mut self);
@@ -38,13 +40,15 @@ pub trait Render {
 }
 
 impl VComponent {
-    pub fn new<T: Component + 'static>(props: T::Props) -> VComponent {
-        let mut comp = T::create(props);
-        comp.created();
+    pub fn new<T: Component + 'static>() -> VComponent {
         VComponent {
             type_id: TypeId::of::<T>(),
-            instance: Box::new(comp),
-            rendered: None
+            instance: None,
+            initializer: Box::new(|| {
+                Box::new(T::create())
+            }),
+            rendered: None,
+            state_changed: Rc::new(RefCell::new(false)),
         }
     }
 }
@@ -79,7 +83,7 @@ impl Debug for VComponent {
 }
 
 impl InternalRender for VComponent {
-    fn internal_render(self) -> VNode {
+    fn internal_render(&mut self) -> VNode {
         unimplemented!()
     }
 }

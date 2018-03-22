@@ -47,10 +47,10 @@ impl_conversion_to_vnode!(List, VList);
 impl_conversion_to_vnode!(Component, VComponent);
 
 impl InternalRender for VNode {
-    fn internal_render(self) -> VNode {
-        match self {
-            VNode::Component(component) => component.internal_render(),
-            vnode => vnode
+    fn internal_render(&mut self) -> VNode {
+        match *self {
+            VNode::Component(ref mut component) => component.internal_render(),
+            _ => unreachable!()
         }
     }
 }

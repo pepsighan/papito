@@ -1,5 +1,5 @@
 use vnode::VNode;
 
 pub trait InternalRender {
-    fn internal_render(self) -> VNode;
+    fn internal_render(&mut self) -> VNode;
 }
