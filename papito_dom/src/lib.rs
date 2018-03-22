@@ -10,6 +10,8 @@ use velement::VElement;
 use vlist::VList;
 #[cfg(target_arch = "wasm32")]
 use stdweb::web::event::ConcreteEvent;
+use traits::Component;
+use vcomponent::VComponent;
 
 type CowStr = Cow<'static, str>;
 
@@ -29,6 +31,10 @@ pub mod prelude {
     #[cfg(target_arch = "wasm32")]
     pub use events::DOMEventListener;
     pub use traits::{Render, Component, Lifecycle};
+}
+
+pub fn comp<T: Component + 'static>() -> VComponent {
+    VComponent::new::<T>()
 }
 
 pub fn txt<T: Into<VText>>(txt: T) -> VText {
@@ -57,8 +63,12 @@ pub fn ev<E, T, F>(listener: E) -> Box<events::DOMEvent> where
 
 #[macro_export]
 macro_rules! h {
+    // Creates a component vnode
+    (comp $t:tt) => {
+        comp::<$t>()
+    };
     // Creates vnodes from a vec
-    (vec $n:expr $(,)*) => {
+    (vec $n:expr) => {
         $crate::h($crate::li($n));
     };
     // Creates keyed vnodes
@@ -70,7 +80,7 @@ macro_rules! h {
         $crate::h($crate::li(vec![ $( $v ),* ]))
     };
     // Creates text vnode
-    ($n:expr $(,)*) => {
+    ($n:expr) => {
         $crate::h($crate::txt($n))
     };
     // Creates an empty element
