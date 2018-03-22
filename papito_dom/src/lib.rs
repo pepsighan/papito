@@ -145,6 +145,7 @@ mod test {
     #[cfg(target_arch = "wasm32")]
     use stdweb::web::event::InputEvent;
     use traits::{Component, Lifecycle, Render};
+    use vcomponent::VComponent;
 
     #[test]
     fn should_create_text_vnode() {
@@ -370,7 +371,10 @@ mod test {
         }
 
         let node = h!(comp Button);
-
+        assert_eq!(
+            VNode::Component(VComponent::new::<Button>()),
+            node
+        );
     }
 
     #[test]
