@@ -8,11 +8,7 @@ pub trait InternalRender {
 }
 
 pub trait Component: Lifecycle {
-    fn create() -> Self;
-
-    fn update(&mut self);
-
-    fn destroy(&mut self);
+    fn create(notifier: Box<Fn()>) -> Self;
 }
 
 pub trait Lifecycle: Render {

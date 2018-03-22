@@ -18,14 +18,20 @@ pub struct VComponent {
 
 impl VComponent {
     pub fn new<T: Component + 'static>() -> VComponent {
+        let state_changed = Rc::new(RefCell::new(false));
+        let state_changed_writer = state_changed.clone();
         VComponent {
             type_id: TypeId::of::<T>(),
             instance: None,
-            initializer: Box::new(|| {
-                Box::new(T::create())
+            initializer: Box::new(move || {
+                let state_changed = state_changed_writer.clone();
+                let notifier = Box::new(move || {
+                    *state_changed.borrow_mut() = true;
+                });
+                Box::new(T::create(notifier))
             }),
             rendered: None,
-            state_changed: Rc::new(RefCell::new(false)),
+            state_changed,
         }
     }
 
