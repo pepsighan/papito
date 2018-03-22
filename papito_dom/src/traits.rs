@@ -24,8 +24,6 @@ pub trait Lifecycle: Render {
 
     fn mounted(&mut self) {}
 
-    fn before_update(&mut self) {}
-
     fn updated(&mut self) {}
 
     fn destroyed(&mut self) {}
