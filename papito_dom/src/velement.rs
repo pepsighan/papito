@@ -200,6 +200,7 @@ mod wasm {
     use vdiff::DOMReorder;
     use vdiff::DOMNode;
     use stdweb::web::Node;
+    use traits::InternalRender;
 
     impl DOMPatch<VElement> for VElement {
         fn patch(&mut self, parent: &Element, next: Option<&Node>, old_vnode: Option<&mut VElement>) {
@@ -323,6 +324,14 @@ mod wasm {
     impl DOMNode for VElement {
         fn dom_node(&self) -> Option<Node> {
             self.dom_ref.clone().map(|it| it.into())
+        }
+    }
+
+    impl InternalRender for VElement {
+        fn internal_render(&mut self, parent: &Element, next: Option<&Node>) {
+            if let Some(ref mut child) = self.child {
+                child.internal_render(parent, next);
+            }
         }
     }
 }

@@ -61,6 +61,7 @@ mod wasm {
     use vdiff::DOMNode;
     use stdweb::web::Node;
     use CowStr;
+    use traits::InternalRender;
 
     impl DOMPatch<VList> for VList {
         fn patch(&mut self, parent: &Element, next: Option<&Node>, old_vnodes: Option<&mut VList>) {
@@ -161,6 +162,14 @@ mod wasm {
     impl DOMNode for VList {
         fn dom_node(&self) -> Option<Node> {
             self.children.iter().next().and_then(|it| it.1.dom_node())
+        }
+    }
+
+    impl InternalRender for VList {
+        fn internal_render(&mut self, parent: &Element, next: Option<&Node>) {
+            for (_, child) in self.children.iter_mut() {
+                child.internal_render(parent, next)
+            }
         }
     }
 }

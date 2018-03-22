@@ -124,7 +124,9 @@ mod wasm {
         fn internal_render(&mut self, parent: &Element, next: Option<&Node>) {
             match *self {
                 VNode::Component(ref mut component) => component.internal_render(parent, next),
-                _ => unreachable!()
+                VNode::List(ref mut list) => list.internal_render(parent, next),
+                VNode::Element(ref mut element) => element.internal_render(parent, next),
+                VNode::Text(_) => {}
             }
         }
     }
