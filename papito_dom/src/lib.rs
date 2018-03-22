@@ -30,7 +30,9 @@ pub mod prelude {
     pub use vnode::VNode;
     #[cfg(target_arch = "wasm32")]
     pub use events::DOMEventListener;
-    pub use traits::{Render, Component, Lifecycle, RenderToString};
+    pub use traits::{Render, Component, Lifecycle, RenderToString, ServerRender};
+    #[cfg(target_arch = "wasm32")]
+    pub use traits::{DOMRender};
 }
 
 pub fn comp<T: Component + 'static>() -> VComponent {
