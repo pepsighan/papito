@@ -21,7 +21,7 @@ impl App {
 
     pub fn render<T: Into<AppRoot>>(&mut self, app_root: T) {
         let app_root = app_root.into();
-        self.vdom.dom_render(&app_root, None);
+        self.vdom.dom_render(&app_root, None, self.render_req.sender());
     }
 }
 
