@@ -1,6 +1,7 @@
 use vnode::VNode;
 #[cfg(target_arch = "wasm32")]
 use stdweb::web::{Element, Node};
+#[cfg(target_arch = "wasm32")]
 use events::RenderRequestSender;
 
 #[cfg(target_arch = "wasm32")]

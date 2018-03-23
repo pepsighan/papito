@@ -9,6 +9,7 @@ use traits::Component;
 use traits::Lifecycle;
 #[cfg(not(target_arch = "wasm32"))]
 use traits::ServerRender;
+#[cfg(target_arch = "wasm32")]
 use events::RenderRequestSender;
 
 pub struct VComponent {
@@ -62,9 +63,18 @@ impl VComponent {
         }
     }
 
+    #[cfg(target_arch = "wasm32")]
     fn init(&mut self, render_req: RenderRequestSender) {
         let initializer = &self.initializer;
         let mut instance = initializer(render_req);
+        instance.created();
+        self.instance = Some(instance);
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn init(&mut self) {
+        let initializer = &self.initializer;
+        let mut instance = initializer();
         instance.created();
         self.instance = Some(instance);
     }
