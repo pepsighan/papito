@@ -9,7 +9,7 @@ use std::ops::Deref;
 
 pub struct App {
     vdom: VNode,
-    render_req: RenderRequest
+    render_req: RenderRequest,
 }
 
 impl App {
@@ -21,20 +21,18 @@ impl App {
         App {
             vdom: h(comp::<T>()),
             render_req: RenderRequest::new(|| {
-                js! { @(no_return)
+                js!{ @(no_return)
                     window.__schedule_papito_render__();
                 }
-            })
+            }),
         }
     }
 
     pub fn render<T: Into<AppRoot>>(mut self, app_root: T) {
         let app_root = app_root.into();
-        // Initial render
-        self.vdom.dom_render(&app_root, None, self.render_req.sender());
         // Re-renders on requests from the components
-        let rerender = move || {
-            if self.render_req.receive() {
+        let rerender = move |initial_render: bool| {
+            if initial_render || self.render_req.receive() {
                 self.vdom.dom_render(&app_root, None, self.render_req.sender());
             }
             js! { @(no_return)
@@ -46,9 +44,13 @@ impl App {
             window.__is_rendering__ = false;
             window.__schedule_papito_render__ = function() {
                 if (!window.__is_rendering__) {
-                    setTimeout(rerender);
+                    setTimeout(function() {
+                        rerender(false)
+                    });
                 }
-            }
+            };
+            // Initial render
+            rerender(true);
         }
     }
 }
