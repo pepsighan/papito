@@ -3,6 +3,7 @@ use stdweb::web::event::*;
 use std::marker::PhantomData;
 use std::fmt::Debug;
 use std::fmt::{Formatter, self};
+use std::sync::mpsc::Sender;
 
 /// Add or remove events from the DOM
 pub trait DOMEvent {
@@ -117,3 +118,7 @@ impl PartialEq for DOMEvent {
 }
 
 impl Eq for DOMEvent {}
+
+pub struct RenderRequestSender {
+    tx: Sender<bool>
+}
