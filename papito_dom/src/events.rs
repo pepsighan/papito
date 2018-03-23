@@ -130,10 +130,10 @@ pub struct RenderRequest {
 }
 
 impl RenderRequest {
-    pub fn new<T: Fn() + 'static>(callback: T) -> RenderRequest {
+    pub fn new<T: Fn() + 'static>(on_send: T) -> RenderRequest {
         let (tx, rx) = channel();
         let callback_ref = js! {
-            var callback = @{callback};
+            var callback = @{on_send};
             return callback;
         }.try_into().unwrap();
         RenderRequest {
