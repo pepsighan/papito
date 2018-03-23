@@ -16,7 +16,11 @@ impl App {
     pub fn new<T: Component + 'static>() -> App {
         App {
             vdom: h(comp::<T>()),
-            render_req: RenderRequest::new()
+            render_req: RenderRequest::new(|| {
+                js! { @(no_return)
+                    window.__schedule_papito_render__();
+                }
+            })
         }
     }
 

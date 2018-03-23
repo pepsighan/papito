@@ -1,11 +1,13 @@
 use stdweb::web::{Element, EventListenerHandle, IEventTarget};
 use stdweb::web::event::*;
+use stdweb::unstable::TryInto;
 use std::marker::PhantomData;
 use std::fmt::Debug;
 use std::fmt::{Formatter, self};
 use std::sync::mpsc::Sender;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::channel;
+use stdweb::Reference;
 
 /// Add or remove events from the DOM
 pub trait DOMEvent {
@@ -123,21 +125,28 @@ impl Eq for DOMEvent {}
 
 pub struct RenderRequest {
     tx: Sender<bool>,
-    pub rx: Receiver<bool>
+    rx: Receiver<bool>,
+    callback_ref: Reference
 }
 
 impl RenderRequest {
-    pub fn new() -> RenderRequest {
+    pub fn new<T: Fn() + 'static>(callback: T) -> RenderRequest {
         let (tx, rx) = channel();
+        let callback_ref = js! {
+            var callback = @{callback};
+            return callback;
+        }.try_into().unwrap();
         RenderRequest {
             rx,
-            tx
+            tx,
+            callback_ref
         }
     }
 
     pub fn sender(&self) -> RenderRequestSender {
         RenderRequestSender {
-            tx: self.tx.clone()
+            tx: self.tx.clone(),
+            callback_ref: self.callback_ref.clone()
         }
     }
 
@@ -149,7 +158,8 @@ impl RenderRequest {
 
 #[derive(Clone)]
 pub struct RenderRequestSender {
-    tx: Sender<bool>
+    tx: Sender<bool>,
+    callback_ref: Reference
 }
 
 impl RenderRequestSender {
@@ -157,7 +167,7 @@ impl RenderRequestSender {
         self.tx.send(true)
             .expect("The receiver of the app is not present which is impossible.");
         js!{ @(no_return)
-            window.__schedule_papito_render__();
+            @{&self.callback_ref}();
         }
     }
 }
