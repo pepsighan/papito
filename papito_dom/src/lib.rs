@@ -68,9 +68,12 @@ pub fn ev<E, T, F>(listener: E) -> Box<events::DOMEvent> where
 #[macro_export]
 macro_rules! h {
     // Creates a component vnode
-    (comp $t:tt) => {
-        $crate::h($crate::comp::<$t>())
-    };
+    (comp $t:ty, { $( $k:ident => $v:expr ),* } $(,)*) => {{
+        type T = <$t as Component>::Props;
+        $crate::h($crate::comp::<$t>(T {
+            $( $k: $v ),*
+        }))
+    }};
     // Creates vnodes from a vec
     (vec $n:expr) => {
         $crate::h($crate::li($n));
