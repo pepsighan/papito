@@ -1,4 +1,5 @@
 extern crate papito_dom;
+#[macro_use]
 extern crate stdweb;
 
 use papito_dom::prelude::{Component, VNode, DOMRender, RenderRequest};
@@ -19,9 +20,28 @@ impl App {
         }
     }
 
-    pub fn render<T: Into<AppRoot>>(&mut self, app_root: T) {
+    pub fn render<T: Into<AppRoot>>(mut self, app_root: T) {
         let app_root = app_root.into();
+        // Initial render
         self.vdom.dom_render(&app_root, None, self.render_req.sender());
+        // Re-renders on requests from the components
+        let rerender = move || {
+            if self.render_req.receive() {
+                self.vdom.dom_render(&app_root, None, self.render_req.sender());
+            }
+            js! { @(no_return)
+                window.__is_rendering__ = false;
+            }
+        };
+        js! { @(no_return)
+            var rerender = @{rerender};
+            window.__is_rendering__ = false;
+            window.__schedule_papito_render__ = function() {
+                if (!window.__is_rendering__) {
+                    setTimeout(rerender);
+                }
+            }
+        }
     }
 }
 

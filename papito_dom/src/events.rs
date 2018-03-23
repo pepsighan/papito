@@ -1,13 +1,11 @@
 use stdweb::web::{Element, EventListenerHandle, IEventTarget};
 use stdweb::web::event::*;
-use stdweb::unstable::TryInto;
 use std::marker::PhantomData;
 use std::fmt::Debug;
 use std::fmt::{Formatter, self};
 use std::sync::mpsc::Sender;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::channel;
-use stdweb::Reference;
 
 /// Add or remove events from the DOM
 pub trait DOMEvent {
@@ -125,46 +123,33 @@ impl Eq for DOMEvent {}
 
 pub struct RenderRequest {
     tx: Sender<bool>,
-    rx: Receiver<bool>,
-    callback_ref: Reference
+    pub rx: Receiver<bool>
 }
 
 impl RenderRequest {
     pub fn new() -> RenderRequest {
         let (tx, rx) = channel();
-        let default_callback = || {};
-        let callback_ref = js! {
-              var callback = @{default_callback};
-              return callback;
-        }.try_into().unwrap();
         RenderRequest {
             rx,
-            tx,
-            callback_ref
+            tx
         }
     }
 
     pub fn sender(&self) -> RenderRequestSender {
         RenderRequestSender {
-            tx: self.tx.clone(),
-            callback_ref: self.callback_ref.clone()
+            tx: self.tx.clone()
         }
     }
 
-    pub fn on_request<T: Fn() + 'static>(&mut self, callback: T) {
-        self.callback_ref = js! {
-            var callback = @{&self.callback_ref};
-            callback.drop();
-            var newer_callback = @{callback};
-            return newer_callback;
-        }.try_into().unwrap();
+    pub fn receive(&self) -> bool {
+        let received = self.rx.try_iter().collect::<Vec<_>>();
+        !received.is_empty()
     }
 }
 
 #[derive(Clone)]
 pub struct RenderRequestSender {
-    tx: Sender<bool>,
-    callback_ref: Reference
+    tx: Sender<bool>
 }
 
 impl RenderRequestSender {
@@ -172,7 +157,7 @@ impl RenderRequestSender {
         self.tx.send(true)
             .expect("The receiver of the app is not present which is impossible.");
         js!{ @(no_return)
-            @{&self.callback_ref}();
+            window.__schedule_papito_render__();
         }
     }
 }
