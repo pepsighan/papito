@@ -4,6 +4,8 @@ use std::marker::PhantomData;
 use std::fmt::Debug;
 use std::fmt::{Formatter, self};
 use std::sync::mpsc::Sender;
+use std::sync::mpsc::Receiver;
+use std::sync::mpsc::channel;
 
 /// Add or remove events from the DOM
 pub trait DOMEvent {
@@ -118,6 +120,27 @@ impl PartialEq for DOMEvent {
 }
 
 impl Eq for DOMEvent {}
+
+pub struct RenderRequest {
+    tx: Sender<bool>,
+    rx: Receiver<bool>,
+}
+
+impl RenderRequest {
+    pub fn new() -> RenderRequest {
+        let (tx, rx) = channel();
+        RenderRequest {
+            rx,
+            tx,
+        }
+    }
+
+    pub fn sender(&self) -> RenderRequestSender {
+        RenderRequestSender {
+            tx: self.tx.clone()
+        }
+    }
+}
 
 pub struct RenderRequestSender {
     tx: Sender<bool>
