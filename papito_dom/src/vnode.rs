@@ -4,6 +4,7 @@ use vtext::VText;
 use std::fmt::Display;
 use std::fmt::{Formatter, self};
 use vcomponent::VComponent;
+#[cfg(not(target_arch = "wasm32"))]
 use traits::ServerRender;
 
 #[derive(Debug, Eq, PartialEq)]
@@ -46,6 +47,7 @@ impl_conversion_to_vnode!(Element, VElement);
 impl_conversion_to_vnode!(List, VList);
 impl_conversion_to_vnode!(Component, VComponent);
 
+#[cfg(not(target_arch = "wasm32"))]
 impl ServerRender for VNode {
     fn server_render(&mut self) {
         match *self {
@@ -66,17 +68,18 @@ mod wasm {
     use vdiff::DOMNode;
     use stdweb::web::Node;
     use traits::DOMRender;
+    use events::RenderRequestSender;
 
     macro_rules! match_for_vnode_patch {
-        ($against:ident, $parent:ident, $next:ident, $old_vnode:ident, [$( $variant:ident ),*] ) => {
+        ($against:ident, $parent:ident, $next:ident, $old_vnode:ident, $render_req:ident, [$( $variant:ident ),*] ) => {
             match *$against {
                 $(
                     VNode::$variant(ref mut node_like) => {
                         if let Some(&mut VNode::$variant(ref mut old_node_like)) = $old_vnode {
-                            node_like.patch($parent, $next, Some(old_node_like));
+                            node_like.patch($parent, $next, Some(old_node_like), $render_req);
                         } else {
                             $old_vnode.remove($parent);
-                            node_like.patch($parent, $next, None);
+                            node_like.patch($parent, $next, None, $render_req);
                         }
                     }
                 )*
@@ -85,8 +88,8 @@ mod wasm {
     }
 
     impl DOMPatch<VNode> for VNode {
-        fn patch(&mut self, parent: &Element, next: Option<&Node>, mut old_vnode: Option<&mut VNode>) {
-            match_for_vnode_patch!(self, parent, next, old_vnode, [Text, Element, List, Component]);
+        fn patch(&mut self, parent: &Element, next: Option<&Node>, mut old_vnode: Option<&mut VNode>, render_req: RenderRequestSender) {
+            match_for_vnode_patch!(self, parent, next, old_vnode, render_req, [Text, Element, List, Component]);
         }
     }
 
@@ -133,11 +136,11 @@ mod wasm {
     }
 
     impl DOMRender for VNode {
-        fn dom_render(&mut self, parent: &Element, next: Option<&Node>) {
+        fn dom_render(&mut self, parent: &Element, next: Option<&Node>, render_req: RenderRequestSender) {
             match *self {
-                VNode::Component(ref mut component) => component.dom_render(parent, next),
-                VNode::List(ref mut list) => list.dom_render(parent, next),
-                VNode::Element(ref mut element) => element.dom_render(parent, next),
+                VNode::Component(ref mut component) => component.dom_render(parent, next, render_req),
+                VNode::List(ref mut list) => list.dom_render(parent, next, render_req),
+                VNode::Element(ref mut element) => element.dom_render(parent, next, render_req),
                 VNode::Text(_) => {}
             }
         }

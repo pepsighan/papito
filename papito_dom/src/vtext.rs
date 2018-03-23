@@ -46,9 +46,10 @@ mod wasm {
     use vdiff::DOMReorder;
     use vdiff::DOMNode;
     use stdweb::web::Node;
+    use events::RenderRequestSender;
 
     impl DOMPatch<VText> for VText {
-        fn patch(&mut self, parent: &Element, next: Option<&Node>, old_vnode: Option<&mut VText>) {
+        fn patch(&mut self, parent: &Element, next: Option<&Node>, old_vnode: Option<&mut VText>, _: RenderRequestSender) {
             if let Some(old_vnode) = old_vnode {
                 let text_node = old_vnode.dom_ref().unwrap().clone();
                 if old_vnode.content != self.content {

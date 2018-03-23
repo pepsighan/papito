@@ -3,6 +3,7 @@ use std::fmt::Display;
 use std::fmt::{Formatter, self};
 use indexmap::IndexMap;
 use CowStr;
+#[cfg(not(target_arch = "wasm32"))]
 use traits::ServerRender;
 
 type Key = CowStr;
@@ -53,6 +54,7 @@ impl From<Vec<VNode>> for VList {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl ServerRender for VList {
     fn server_render(&mut self) {
         for (_, child) in self.children.iter_mut() {
@@ -71,9 +73,10 @@ mod wasm {
     use stdweb::web::Node;
     use CowStr;
     use traits::DOMRender;
+    use events::RenderRequestSender;
 
     impl DOMPatch<VList> for VList {
-        fn patch(&mut self, parent: &Element, next: Option<&Node>, old_vnodes: Option<&mut VList>) {
+        fn patch(&mut self, parent: &Element, next: Option<&Node>, old_vnodes: Option<&mut VList>, render_req: RenderRequestSender) {
             if let Some(old_vnodes) = old_vnodes {
                 let mut patched_node_keys = vec![];
                 {
@@ -81,10 +84,10 @@ mod wasm {
                     for (k, v) in self.children.iter_mut().rev() {
                         if let Some(pre_vnode) = old_vnodes.children.get_mut(k) {
                             // Patch if any old VNode found
-                            v.patch(parent, next_node.as_ref(), Some(pre_vnode));
+                            v.patch(parent, next_node.as_ref(), Some(pre_vnode), render_req.clone());
                             patched_node_keys.push(k.clone());
                         } else {
-                            v.patch(parent, next_node.as_ref(), None);
+                            v.patch(parent, next_node.as_ref(), None, render_req.clone());
                         }
                         next_node = v.dom_node();
                     }
@@ -95,7 +98,7 @@ mod wasm {
                 remove_old_vnodes(old_vnodes, patched_node_keys, parent);
             } else {
                 for (_, v) in self.children.iter_mut() {
-                    v.patch(parent, None, None);
+                    v.patch(parent, None, None, render_req.clone());
                 }
             }
         }
@@ -175,9 +178,9 @@ mod wasm {
     }
 
     impl DOMRender for VList {
-        fn dom_render(&mut self, parent: &Element, next: Option<&Node>) {
+        fn dom_render(&mut self, parent: &Element, next: Option<&Node>, render_req: RenderRequestSender) {
             for (_, child) in self.children.iter_mut() {
-                child.dom_render(parent, next)
+                child.dom_render(parent, next, render_req.clone());
             }
         }
     }

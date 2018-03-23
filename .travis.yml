@@ -2,3 +2,5 @@ language: rust
 rust:
     nightly
 cache: cargo
+script:
+    - cargo test --manifest-path papito_dom/Cargo.toml

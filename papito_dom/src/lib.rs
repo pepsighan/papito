@@ -10,7 +10,6 @@ use velement::VElement;
 use vlist::VList;
 #[cfg(target_arch = "wasm32")]
 use stdweb::web::event::ConcreteEvent;
-use traits::Component;
 use vcomponent::VComponent;
 
 type CowStr = Cow<'static, str>;
@@ -26,11 +25,16 @@ mod vdiff;
 mod events;
 mod traits;
 
+#[cfg(target_arch = "wasm32")]
+pub use traits::DOMRender;
+#[cfg(target_arch = "wasm32")]
+pub use events::{DOMEventListener, RenderRequest};
+pub use traits::{Render, Component, Lifecycle};
+
 pub mod prelude {
     pub use vnode::VNode;
-    #[cfg(target_arch = "wasm32")]
-    pub use events::DOMEventListener;
-    pub use traits::{Render, Component, Lifecycle, RenderToString};
+    #[cfg(not(target_arch = "wasm32"))]
+    pub use traits::RenderToString;
 }
 
 pub fn comp<T: Component + 'static>() -> VComponent {

@@ -7,6 +7,7 @@ use stdweb::web::Element;
 #[cfg(target_arch = "wasm32")]
 use events::DOMEvent;
 use vnode::VNode;
+#[cfg(not(target_arch = "wasm32"))]
 use traits::ServerRender;
 
 #[derive(Debug, Eq, PartialEq)]
@@ -192,6 +193,7 @@ fn split_into_class_and_attrs(mut attrs: Attributes) -> (Option<ClassString>, Op
     (class, if attrs.0.len() == 0 { None } else { Some(attrs) })
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl ServerRender for VElement {
     fn server_render(&mut self) {
         if let Some(ref mut child) = self.child {
@@ -210,24 +212,25 @@ mod wasm {
     use vdiff::DOMNode;
     use stdweb::web::Node;
     use traits::DOMRender;
+    use events::RenderRequestSender;
 
     impl DOMPatch<VElement> for VElement {
-        fn patch(&mut self, parent: &Element, next: Option<&Node>, old_vnode: Option<&mut VElement>) {
+        fn patch(&mut self, parent: &Element, next: Option<&Node>, old_vnode: Option<&mut VElement>, render_req: RenderRequestSender) {
             if let Some(old_vnode) = old_vnode {
                 if old_vnode.tag != self.tag {
                     old_vnode.remove(parent);
-                    create_new_dom_node(self, parent, next);
+                    create_new_dom_node(self, parent, next, render_req);
                 } else {
                     let el = old_vnode.dom_ref().expect("Older element must have dom_ref")
                         .clone();
-                    self.class.patch(&el, None, old_vnode.class.as_mut());
-                    self.attrs.patch(&el, None, old_vnode.attrs.as_mut());
-                    self.child.patch(&el, None, old_vnode.child.as_mut().map(|it| &mut **it));
-                    self.events.patch(&el, None, Some(&mut old_vnode.events));
+                    self.class.patch(&el, None, old_vnode.class.as_mut(), render_req.clone());
+                    self.attrs.patch(&el, None, old_vnode.attrs.as_mut(), render_req.clone());
+                    self.child.patch(&el, None, old_vnode.child.as_mut().map(|it| &mut **it), render_req.clone());
+                    self.events.patch(&el, None, Some(&mut old_vnode.events), render_req);
                     self.dom_ref = Some(el);
                 }
             } else {
-                create_new_dom_node(self, parent, next);
+                create_new_dom_node(self, parent, next, render_req);
             }
         }
     }
@@ -257,12 +260,12 @@ mod wasm {
         }
     }
 
-    fn create_new_dom_node(vel: &mut VElement, parent: &Element, next: Option<&Node>) {
+    fn create_new_dom_node(vel: &mut VElement, parent: &Element, next: Option<&Node>, render_req: RenderRequestSender) {
         let el_node = document().create_element(&vel.tag).unwrap();
-        vel.class.patch(&el_node, None, None);
-        vel.attrs.patch(&el_node, None, None);
-        vel.child.patch(&el_node, None, None);
-        vel.events.patch(&el_node, None, None);
+        vel.class.patch(&el_node, None, None, render_req.clone());
+        vel.attrs.patch(&el_node, None, None, render_req.clone());
+        vel.child.patch(&el_node, None, None, render_req.clone());
+        vel.events.patch(&el_node, None, None, render_req);
         if let Some(next) = next {
             parent.insert_before(&el_node, next).unwrap();
         } else {
@@ -272,7 +275,7 @@ mod wasm {
     }
 
     impl DOMPatch<ClassString> for ClassString {
-        fn patch(&mut self, parent: &Element, _: Option<&Node>, old_value: Option<&mut ClassString>) {
+        fn patch(&mut self, parent: &Element, _: Option<&Node>, old_value: Option<&mut ClassString>, _: RenderRequestSender) {
             if Some(&mut *self) != old_value {
                 parent.set_attribute("class", &self.0)
                     .unwrap();
@@ -287,7 +290,7 @@ mod wasm {
     }
 
     impl DOMPatch<Attributes> for Attributes {
-        fn patch(&mut self, parent: &Element, _: Option<&Node>, old_vnode: Option<&mut Attributes>) {
+        fn patch(&mut self, parent: &Element, _: Option<&Node>, old_vnode: Option<&mut Attributes>, _: RenderRequestSender) {
             let mut deleted_attrs = old_vnode.map(|it| it.0
                 .iter()
                 .collect::<IndexMap<_, _>>())
@@ -313,7 +316,7 @@ mod wasm {
     }
 
     impl DOMPatch<Events> for Events {
-        fn patch(&mut self, parent: &Element, _: Option<&Node>, mut old_vnode: Option<&mut Events>) {
+        fn patch(&mut self, parent: &Element, _: Option<&Node>, mut old_vnode: Option<&mut Events>, _: RenderRequestSender) {
             // Remove older events because their is no way for Eq between two events.
             old_vnode.remove(parent);
             for ev in self.0.iter_mut() {
@@ -337,9 +340,9 @@ mod wasm {
     }
 
     impl DOMRender for VElement {
-        fn dom_render(&mut self, parent: &Element, next: Option<&Node>) {
+        fn dom_render(&mut self, parent: &Element, next: Option<&Node>, render_req: RenderRequestSender) {
             if let Some(ref mut child) = self.child {
-                child.dom_render(parent, next);
+                child.dom_render(parent, next, render_req);
             }
         }
     }
