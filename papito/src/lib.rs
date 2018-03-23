@@ -2,10 +2,14 @@ extern crate papito_dom;
 #[macro_use]
 extern crate stdweb;
 
-use papito_dom::prelude::{Component, VNode, DOMRender, RenderRequest};
-use papito_dom::{comp, h};
+use papito_dom::prelude::VNode;
+use papito_dom::{comp, h, DOMRender, RenderRequest, Component};
 use stdweb::web::{document, Element, INonElementParentNode};
 use std::ops::Deref;
+
+pub mod prelude {
+    pub use papito_dom::{Component, Lifecycle, Render};
+}
 
 pub struct App {
     vdom: VNode,
@@ -21,7 +25,7 @@ impl App {
         App {
             vdom: h(comp::<T>()),
             render_req: RenderRequest::new(|| {
-                js!{ @(no_return)
+                js! { @(no_return)
                     window.__schedule_papito_render__();
                 }
             }),
