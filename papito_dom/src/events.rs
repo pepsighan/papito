@@ -142,6 +142,11 @@ impl RenderRequest {
     }
 }
 
+#[derive(Clone)]
 pub struct RenderRequestSender {
     tx: Sender<bool>
+}
+
+impl RenderRequestSender {
+    pub fn send(&self) {}
 }

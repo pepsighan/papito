@@ -1,10 +1,11 @@
 use vnode::VNode;
 #[cfg(target_arch = "wasm32")]
 use stdweb::web::{Element, Node};
+use events::RenderRequestSender;
 
 #[cfg(target_arch = "wasm32")]
 pub trait DOMRender {
-    fn dom_render(&mut self, parent: &Element, next: Option<&Node>);
+    fn dom_render(&mut self, parent: &Element, next: Option<&Node>, render_req: RenderRequestSender);
 }
 
 pub trait ServerRender {
