@@ -7,6 +7,7 @@ use stdweb::web::Element;
 #[cfg(target_arch = "wasm32")]
 use events::DOMEvent;
 use vnode::VNode;
+#[cfg(not(target_arch = "wasm32"))]
 use traits::ServerRender;
 
 #[derive(Debug, Eq, PartialEq)]
@@ -192,6 +193,7 @@ fn split_into_class_and_attrs(mut attrs: Attributes) -> (Option<ClassString>, Op
     (class, if attrs.0.len() == 0 { None } else { Some(attrs) })
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl ServerRender for VElement {
     fn server_render(&mut self) {
         if let Some(ref mut child) = self.child {

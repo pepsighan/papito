@@ -7,6 +7,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use traits::Component;
 use traits::Lifecycle;
+#[cfg(not(target_arch = "wasm32"))]
 use traits::ServerRender;
 use events::RenderRequestSender;
 
@@ -102,6 +103,7 @@ impl Debug for VComponent {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl ServerRender for VComponent {
     fn server_render(&mut self) {
         debug_assert!(self.instance.is_none());

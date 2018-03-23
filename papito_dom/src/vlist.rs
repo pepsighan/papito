@@ -3,6 +3,7 @@ use std::fmt::Display;
 use std::fmt::{Formatter, self};
 use indexmap::IndexMap;
 use CowStr;
+#[cfg(not(target_arch = "wasm32"))]
 use traits::ServerRender;
 
 type Key = CowStr;
@@ -53,6 +54,7 @@ impl From<Vec<VNode>> for VList {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl ServerRender for VList {
     fn server_render(&mut self) {
         for (_, child) in self.children.iter_mut() {

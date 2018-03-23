@@ -4,6 +4,7 @@ use vtext::VText;
 use std::fmt::Display;
 use std::fmt::{Formatter, self};
 use vcomponent::VComponent;
+#[cfg(not(target_arch = "wasm32"))]
 use traits::ServerRender;
 
 #[derive(Debug, Eq, PartialEq)]
@@ -46,6 +47,7 @@ impl_conversion_to_vnode!(Element, VElement);
 impl_conversion_to_vnode!(List, VList);
 impl_conversion_to_vnode!(Component, VComponent);
 
+#[cfg(not(target_arch = "wasm32"))]
 impl ServerRender for VNode {
     fn server_render(&mut self) {
         match *self {
