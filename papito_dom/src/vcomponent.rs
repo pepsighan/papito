@@ -20,16 +20,16 @@ pub struct VComponent {
     instance: Option<Box<Lifecycle>>,
     props: *mut Props,
     #[cfg(target_arch = "wasm32")]
-    initializer: Box<Fn(RenderRequestSender) -> Box<Lifecycle>>,
+    initializer: Box<Fn(*mut Props, RenderRequestSender) -> Box<Lifecycle>>,
     #[cfg(not(target_arch = "wasm32"))]
-    initializer: Box<Fn() -> Box<Lifecycle>>,
+    initializer: Box<Fn(*mut Props) -> Box<Lifecycle>>,
     rendered: Option<Box<VNode>>,
     state_changed: Rc<RefCell<bool>>,
 }
 
 impl VComponent {
     #[cfg(target_arch = "wasm32")]
-    pub fn new<T: Component + 'static, P>(props: P) -> VComponent {
+    pub fn new<T: Component + 'static>(props: T::Props) -> VComponent {
         let state_changed = Rc::new(RefCell::new(false));
         let state_changed_writer = state_changed.clone();
         let props: *mut Props = unsafe {
@@ -39,13 +39,16 @@ impl VComponent {
             type_id: TypeId::of::<T>(),
             instance: None,
             props,
-            initializer: Box::new(move |render_req| {
+            initializer: Box::new(move |props, render_req| {
                 let state_changed = state_changed_writer.clone();
                 let notifier = Box::new(move || {
                     *state_changed.borrow_mut() = true;
                     render_req.send();
                 });
-                Box::new(T::create(notifier))
+                let props: T::Props = unsafe {
+                    *Box::from_raw(mem::transmute(props))
+                };
+                Box::new(T::create(props, notifier))
             }),
             rendered: None,
             state_changed,
@@ -53,7 +56,7 @@ impl VComponent {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn new<T: Component + 'static, P>(props: P) -> VComponent {
+    pub fn new<T: Component + 'static>(props: T::Props) -> VComponent {
         let state_changed = Rc::new(RefCell::new(false));
         let state_changed_writer = state_changed.clone();
         let props: *mut Props = unsafe {
@@ -63,12 +66,15 @@ impl VComponent {
             type_id: TypeId::of::<T>(),
             instance: None,
             props,
-            initializer: Box::new(move || {
+            initializer: Box::new(move |props| {
                 let state_changed = state_changed_writer.clone();
                 let notifier = Box::new(move || {
                     *state_changed.borrow_mut() = true;
                 });
-                Box::new(T::create(notifier))
+                let props: T::Props = unsafe {
+                    *Box::from_raw(mem::transmute(props))
+                };
+                Box::new(T::create(props, notifier))
             }),
             rendered: None,
             state_changed,
@@ -78,7 +84,7 @@ impl VComponent {
     #[cfg(target_arch = "wasm32")]
     fn init(&mut self, render_req: RenderRequestSender) {
         let initializer = &self.initializer;
-        let mut instance = initializer(render_req);
+        let mut instance = initializer(self.props, render_req);
         instance.created();
         self.instance = Some(instance);
     }
@@ -86,7 +92,7 @@ impl VComponent {
     #[cfg(not(target_arch = "wasm32"))]
     fn init(&mut self) {
         let initializer = &self.initializer;
-        let mut instance = initializer();
+        let mut instance = initializer(self.props);
         instance.created();
         self.instance = Some(instance);
     }
