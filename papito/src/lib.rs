@@ -14,6 +14,10 @@ pub struct App {
 
 impl App {
     pub fn new<T: Component + 'static>() -> App {
+        js! { @(no_return)
+            window.__schedule_papito_render__ = function() {};
+        }
+
         App {
             vdom: h(comp::<T>()),
             render_req: RenderRequest::new(|| {
