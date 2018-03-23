@@ -37,8 +37,8 @@ pub mod prelude {
     pub use traits::RenderToString;
 }
 
-pub fn comp<T: Component + 'static>() -> VComponent {
-    VComponent::new::<T>()
+pub fn comp<T: Component + 'static, P>(props: P) -> VComponent {
+    VComponent::new::<T, _>(props)
 }
 
 pub fn txt<T: Into<VText>>(txt: T) -> VText {

@@ -11,10 +11,14 @@ use traits::Lifecycle;
 use traits::ServerRender;
 #[cfg(target_arch = "wasm32")]
 use events::RenderRequestSender;
+use std::mem;
+
+struct Props;
 
 pub struct VComponent {
     type_id: TypeId,
     instance: Option<Box<Lifecycle>>,
+    props: *mut Props,
     #[cfg(target_arch = "wasm32")]
     initializer: Box<Fn(RenderRequestSender) -> Box<Lifecycle>>,
     #[cfg(not(target_arch = "wasm32"))]
@@ -25,12 +29,16 @@ pub struct VComponent {
 
 impl VComponent {
     #[cfg(target_arch = "wasm32")]
-    pub fn new<T: Component + 'static>() -> VComponent {
+    pub fn new<T: Component + 'static, P>(props: P) -> VComponent {
         let state_changed = Rc::new(RefCell::new(false));
         let state_changed_writer = state_changed.clone();
+        let props: *mut Props = unsafe {
+            mem::transmute(Box::into_raw(Box::new(props)))
+        };
         VComponent {
             type_id: TypeId::of::<T>(),
             instance: None,
+            props,
             initializer: Box::new(move |render_req| {
                 let state_changed = state_changed_writer.clone();
                 let notifier = Box::new(move || {
@@ -45,12 +53,16 @@ impl VComponent {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn new<T: Component + 'static>() -> VComponent {
+    pub fn new<T: Component + 'static, P>(props: P) -> VComponent {
         let state_changed = Rc::new(RefCell::new(false));
         let state_changed_writer = state_changed.clone();
+        let props: *mut Props = unsafe {
+            mem::transmute(Box::into_raw(Box::new(props)))
+        };
         VComponent {
             type_id: TypeId::of::<T>(),
             instance: None,
+            props,
             initializer: Box::new(move || {
                 let state_changed = state_changed_writer.clone();
                 let notifier = Box::new(move || {
