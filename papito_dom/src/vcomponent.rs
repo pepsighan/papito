@@ -8,7 +8,7 @@ use std::cell::RefCell;
 use traits::Component;
 use traits::Lifecycle;
 #[cfg(not(target_arch = "wasm32"))]
-use traits::ServerRender;
+use traits::{ServerRender, AsAny};
 #[cfg(target_arch = "wasm32")]
 use events::RenderRequestSender;
 use std::mem;
@@ -23,6 +23,8 @@ pub struct VComponent {
     initializer: Box<Fn(*mut Props, RenderRequestSender) -> Box<Lifecycle>>,
     #[cfg(not(target_arch = "wasm32"))]
     initializer: Box<Fn(*mut Props) -> Box<Lifecycle>>,
+    #[cfg(target_arch = "wasm32")]
+    props_setter: Box<Fn(&mut Box<Lifecycle>, *mut Props)>,
     rendered: Option<Box<VNode>>,
     state_changed: Rc<RefCell<bool>>,
 }
@@ -49,6 +51,14 @@ impl VComponent {
                     *Box::from_raw(mem::transmute(props))
                 };
                 Box::new(T::create(props, notifier))
+            }),
+            props_setter: Box::new(|instance, props| {
+                let props: T::Props = unsafe {
+                    *Box::from_raw(mem::transmute(props))
+                };
+                let instance = instance.as_any().downcast_mut::<T>()
+                    .expect("Impossible. The instance cannot be of any other type");
+                T::update(instance, props);
             }),
             rendered: None,
             state_changed,
@@ -97,6 +107,14 @@ impl VComponent {
         let mut instance = initializer(props);
         instance.created();
         self.instance = Some(instance);
+    }
+
+    // Only use this when the Type of the props is same as that of this Component's props
+    #[cfg(target_arch = "wasm32")]
+    unsafe fn set_props(&mut self, props: *mut Props) {
+        debug_assert!(self.instance.is_some());
+        let props_setter = &self.props_setter;
+        props_setter(self.instance.as_mut().unwrap(), props);
     }
 
     fn state_changed(&self) -> bool {

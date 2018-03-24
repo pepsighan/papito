@@ -3,6 +3,7 @@ use vnode::VNode;
 use stdweb::web::{Element, Node};
 #[cfg(target_arch = "wasm32")]
 use events::RenderRequestSender;
+use std::any::Any;
 
 #[cfg(target_arch = "wasm32")]
 pub trait DOMRender {
@@ -23,9 +24,11 @@ pub trait Component: Lifecycle {
     type Props;
 
     fn create(props: Self::Props, notifier: Box<Fn()>) -> Self;
+
+    fn update(&mut self, props: Self::Props);
 }
 
-pub trait Lifecycle: Render {
+pub trait Lifecycle: Render + AsAny {
     fn created(&mut self) {}
 
     fn mounted(&mut self) {}
@@ -37,6 +40,16 @@ pub trait Lifecycle: Render {
 
 pub trait Render {
     fn render(&self) -> VNode;
+}
+
+pub trait AsAny {
+    fn as_any(&mut self) -> &mut Any;
+}
+
+impl<T: Lifecycle + 'static> AsAny for T {
+    fn as_any(&mut self) -> &mut Any {
+        self
+    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
