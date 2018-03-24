@@ -97,7 +97,7 @@ mod wasm {
                 }
                 self.children = children.into_iter().rev().collect();
                 if has_dirty_order(&self, &old_children_pos) {
-                    update_positions(&self, parent, &old_children_pos);
+                    update_dom_positions(&self, parent, &old_children_pos);
                 }
                 remove_old_vnodes(old_vnodes, parent);
             } else {
@@ -130,7 +130,7 @@ mod wasm {
         false
     }
 
-    fn update_positions(new_vnodes: &VList, parent: &Element, old_vnodes: &IndexMap<CowStr, usize>) {
+    fn update_dom_positions(new_vnodes: &VList, parent: &Element, old_vnodes: &IndexMap<CowStr, usize>) {
         let mut next_key = None;
         for (k, new_node) in new_vnodes.children.iter().rev() {
             let new_pos = new_vnodes.position(k);
