@@ -255,7 +255,7 @@ mod wasm {
                 self.rendered = Some(Box::new(rendered));
                 instance.mounted();
             } else {
-                if self.state_changed() || self.props.is_some() {
+                if self.state_changed() {
                     let old_rendered = self.rendered.take().unwrap();
                     // TODO: Support props
                     let instance = self.instance.as_mut().unwrap();
