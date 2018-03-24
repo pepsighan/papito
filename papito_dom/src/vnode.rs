@@ -72,14 +72,14 @@ mod wasm {
 
     macro_rules! match_for_vnode_patch {
         ($against:ident, $parent:ident, $next:ident, $old_vnode:ident, $render_req:ident, [$( $variant:ident ),*] ) => {
-            match *$against {
+            match $against {
                 $(
-                    VNode::$variant(ref mut node_like) => {
-                        if let Some(&mut VNode::$variant(ref mut old_node_like)) = $old_vnode {
-                            node_like.patch($parent, $next, Some(old_node_like), $render_req);
+                    VNode::$variant(node_like) => {
+                        if let Some(VNode::$variant(old_node_like)) = $old_vnode {
+                            node_like.patch($parent, $next, Some(old_node_like), $render_req).into()
                         } else {
                             $old_vnode.remove($parent);
-                            node_like.patch($parent, $next, None, $render_req);
+                            node_like.patch($parent, $next, None, $render_req).into()
                         }
                     }
                 )*
@@ -88,18 +88,18 @@ mod wasm {
     }
 
     impl DOMPatch<VNode> for VNode {
-        fn patch(&mut self, parent: &Element, next: Option<&Node>, mut old_vnode: Option<&mut VNode>, render_req: RenderRequestSender) {
-            match_for_vnode_patch!(self, parent, next, old_vnode, render_req, [Text, Element, List, Component]);
+        fn patch(self, parent: &Element, next: Option<&Node>, old_vnode: Option<VNode>, render_req: RenderRequestSender) -> Self {
+            match_for_vnode_patch!(self, parent, next, old_vnode, render_req, [Text, Element, List, Component])
         }
     }
 
     impl DOMRemove for VNode {
-        fn remove(&mut self, parent: &Element) {
-            match *self {
-                VNode::Text(ref mut text) => text.remove(parent),
-                VNode::Element(ref mut element) => element.remove(parent),
-                VNode::List(ref mut list) => list.remove(parent),
-                VNode::Component(ref mut component) => component.remove(parent)
+        fn remove(self, parent: &Element) {
+            match self {
+                VNode::Text(text) => text.remove(parent),
+                VNode::Element(element) => element.remove(parent),
+                VNode::List(list) => list.remove(parent),
+                VNode::Component(component) => component.remove(parent)
             }
         }
     }

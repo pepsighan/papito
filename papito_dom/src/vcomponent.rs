@@ -18,7 +18,7 @@ struct Props;
 pub struct VComponent {
     type_id: TypeId,
     instance: Option<Box<Lifecycle>>,
-    props: *mut Props,
+    props: Option<*mut Props>,
     #[cfg(target_arch = "wasm32")]
     initializer: Box<Fn(*mut Props, RenderRequestSender) -> Box<Lifecycle>>,
     #[cfg(not(target_arch = "wasm32"))]
@@ -38,7 +38,7 @@ impl VComponent {
         VComponent {
             type_id: TypeId::of::<T>(),
             instance: None,
-            props,
+            props: Some(props),
             initializer: Box::new(move |props, render_req| {
                 let state_changed = state_changed_writer.clone();
                 let notifier = Box::new(move || {
@@ -65,7 +65,7 @@ impl VComponent {
         VComponent {
             type_id: TypeId::of::<T>(),
             instance: None,
-            props,
+            props: Some(props),
             initializer: Box::new(move |props| {
                 let state_changed = state_changed_writer.clone();
                 let notifier = Box::new(move || {
@@ -84,7 +84,8 @@ impl VComponent {
     #[cfg(target_arch = "wasm32")]
     fn init(&mut self, render_req: RenderRequestSender) {
         let initializer = &self.initializer;
-        let mut instance = initializer(self.props, render_req);
+        let props = self.props.take().expect("Impossible. The props are always provided");
+        let mut instance = initializer(props, render_req);
         instance.created();
         self.instance = Some(instance);
     }
@@ -92,7 +93,8 @@ impl VComponent {
     #[cfg(not(target_arch = "wasm32"))]
     fn init(&mut self) {
         let initializer = &self.initializer;
-        let mut instance = initializer(self.props);
+        let props = self.props.take().expect("Impossible. The props are always provided");
+        let mut instance = initializer(props);
         instance.created();
         self.instance = Some(instance);
     }
@@ -157,19 +159,22 @@ mod wasm {
     use events::RenderRequestSender;
 
     impl DOMPatch<VComponent> for VComponent {
-        fn patch(&mut self, parent: &Element, next: Option<&Node>, old_vnode: Option<&mut VComponent>, render_req: RenderRequestSender) {
+        fn patch(mut self, parent: &Element, next: Option<&Node>, old_vnode: Option<VComponent>, render_req: RenderRequestSender) -> Self {
             // Those that are new here, are unrendered and those old require re-rendering
-            if let Some(old_comp) = old_vnode {
+            if let Some(mut old_comp) = old_vnode {
                 if self.type_id == old_comp.type_id {
                     // Throw out the newer component and reuse older
                     // TODO: Push updated props
                     old_comp.dom_render(parent, next, render_req);
+                    old_comp
                 } else {
                     old_comp.remove(parent);
-                    create_new_component_render(self, parent, next, render_req);
+                    create_new_component_render(&mut self, parent, next, render_req);
+                    self
                 }
             } else {
-                create_new_component_render(self, parent, next, render_req);
+                create_new_component_render(&mut self, parent, next, render_req);
+                self
             }
         }
     }
@@ -182,10 +187,10 @@ mod wasm {
     }
 
     impl DOMRemove for VComponent {
-        fn remove(&mut self, parent: &Element) {
+        fn remove(mut self, parent: &Element) {
             debug_assert!(self.instance.is_some());
             debug_assert!(self.rendered.is_some());
-            self.rendered.as_mut().unwrap().remove(parent);
+            self.rendered.unwrap().remove(parent);
             self.instance.as_mut().unwrap().destroyed();
         }
     }
@@ -218,17 +223,17 @@ mod wasm {
             if self.rendered.is_none() {
                 // First time being rendered
                 let instance = self.instance.as_mut().unwrap();
-                let mut rendered = instance.render();
-                rendered.patch(parent, next, None, render_req);
+                let rendered = instance.render();
+                let rendered = rendered.patch(parent, next, None, render_req);
                 self.rendered = Some(Box::new(rendered));
                 instance.mounted();
             } else {
-                if self.state_changed() {
+                if self.state_changed() || self.props.is_some() {
+                    let old_rendered = self.rendered.take().unwrap();
                     // TODO: Support props
-                    let mut old_rendered = self.rendered.take().unwrap();
                     let instance = self.instance.as_mut().unwrap();
-                    let mut newly_rendered = instance.render();
-                    newly_rendered.patch(parent, next, Some(&mut *old_rendered), render_req);
+                    let newly_rendered = instance.render();
+                    let newly_rendered = newly_rendered.patch(parent, next, Some(*old_rendered), render_req);
                     self.rendered = Some(Box::new(newly_rendered));
                     instance.updated();
                 } else {
