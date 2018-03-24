@@ -18,7 +18,7 @@ struct Props;
 pub struct VComponent {
     type_id: TypeId,
     instance: Option<Box<Lifecycle>>,
-    props: *mut Props,
+    props: Option<*mut Props>,
     #[cfg(target_arch = "wasm32")]
     initializer: Box<Fn(*mut Props, RenderRequestSender) -> Box<Lifecycle>>,
     #[cfg(not(target_arch = "wasm32"))]
@@ -38,7 +38,7 @@ impl VComponent {
         VComponent {
             type_id: TypeId::of::<T>(),
             instance: None,
-            props,
+            props: Some(props),
             initializer: Box::new(move |props, render_req| {
                 let state_changed = state_changed_writer.clone();
                 let notifier = Box::new(move || {
@@ -65,7 +65,7 @@ impl VComponent {
         VComponent {
             type_id: TypeId::of::<T>(),
             instance: None,
-            props,
+            props: Some(props),
             initializer: Box::new(move |props| {
                 let state_changed = state_changed_writer.clone();
                 let notifier = Box::new(move || {
@@ -84,7 +84,8 @@ impl VComponent {
     #[cfg(target_arch = "wasm32")]
     fn init(&mut self, render_req: RenderRequestSender) {
         let initializer = &self.initializer;
-        let mut instance = initializer(self.props, render_req);
+        let props = self.props.take().expect("Impossible. The props are always provided");
+        let mut instance = initializer(props, render_req);
         instance.created();
         self.instance = Some(instance);
     }
@@ -92,7 +93,8 @@ impl VComponent {
     #[cfg(not(target_arch = "wasm32"))]
     fn init(&mut self) {
         let initializer = &self.initializer;
-        let mut instance = initializer(self.props);
+        let props = self.props.take().expect("Impossible. The props are always provided");
+        let mut instance = initializer(props);
         instance.created();
         self.instance = Some(instance);
     }
@@ -226,7 +228,7 @@ mod wasm {
                 self.rendered = Some(Box::new(rendered));
                 instance.mounted();
             } else {
-                if self.state_changed() {
+                if self.state_changed() || self.props.is_some() {
                     let old_rendered = self.rendered.take().unwrap();
                     // TODO: Support props
                     let instance = self.instance.as_mut().unwrap();
