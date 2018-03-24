@@ -379,6 +379,10 @@ mod test {
             fn create(_: (), _: Box<Fn()>) -> Self {
                 Button
             }
+            fn update(&mut self, props: Self::Props) {}
+            fn props(&self) -> &Self::Props {
+                &()
+            }
         }
 
         impl Lifecycle for Button {}
@@ -468,6 +472,10 @@ mod test {
             fn create(_: (), _: Box<Fn()>) -> Self {
                 Button
             }
+            fn update(&mut self, props: Self::Props) {}
+            fn props(&self) -> &Self::Props {
+                &()
+            }
         }
 
         impl Lifecycle for Button {}
@@ -491,6 +499,10 @@ mod test {
             fn create(_: (), _: Box<Fn()>) -> Self {
                 Button
             }
+            fn update(&mut self, props: Self::Props) {}
+            fn props(&self) -> &Self::Props {
+                &()
+            }
         }
 
         impl Lifecycle for Button {}
@@ -507,6 +519,10 @@ mod test {
 
             fn create(_:(), _: Box<Fn()>) -> Self {
                 Div
+            }
+            fn update(&mut self, props: Self::Props) {}
+            fn props(&self) -> &Self::Props {
+                &()
             }
         }
 

@@ -8,7 +8,7 @@ use std::cell::RefCell;
 use traits::Component;
 use traits::Lifecycle;
 #[cfg(not(target_arch = "wasm32"))]
-use traits::ServerRender;
+use traits::{ServerRender, AsAny};
 #[cfg(target_arch = "wasm32")]
 use events::RenderRequestSender;
 use std::mem;
@@ -23,6 +23,8 @@ pub struct VComponent {
     initializer: Box<Fn(*mut Props, RenderRequestSender) -> Box<Lifecycle>>,
     #[cfg(not(target_arch = "wasm32"))]
     initializer: Box<Fn(*mut Props) -> Box<Lifecycle>>,
+    #[cfg(target_arch = "wasm32")]
+    props_setter: Box<Fn(&mut Box<Lifecycle>, Rc<RefCell<bool>>, *mut Props)>,
     rendered: Option<Box<VNode>>,
     state_changed: Rc<RefCell<bool>>,
 }
@@ -49,6 +51,21 @@ impl VComponent {
                     *Box::from_raw(mem::transmute(props))
                 };
                 Box::new(T::create(props, notifier))
+            }),
+            props_setter: Box::new(|instance, state_changed, props| {
+                let props: T::Props = unsafe {
+                    *Box::from_raw(mem::transmute(props))
+                };
+                let instance = instance.as_any().downcast_mut::<T>()
+                    .expect("Impossible. The instance cannot be of any other type");
+                let is_diff = {
+                    let old_props = T::props(instance);
+                    &props != old_props
+                };
+                if is_diff {
+                    T::update(instance, props);
+                    *state_changed.borrow_mut() = true;
+                }
             }),
             rendered: None,
             state_changed,
@@ -99,8 +116,30 @@ impl VComponent {
         self.instance = Some(instance);
     }
 
+    // Only use this when the Type of the props is same as that of this Component's props
+    #[cfg(target_arch = "wasm32")]
+    unsafe fn set_props(&mut self, props: *mut Props) {
+        debug_assert!(self.instance.is_some());
+        let props_setter = &self.props_setter;
+        props_setter(self.instance.as_mut().unwrap(), self.state_changed.clone(), props);
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    fn instance_props<T: Component>(&self) -> T::Props {
+        unimplemented!()
+    }
+
+    fn take_props(&mut self) -> *mut Props {
+        self.props.take()
+            .expect("Props already taken")
+    }
+
     fn state_changed(&self) -> bool {
         *self.state_changed.borrow()
+    }
+
+    fn unset_state_changed(&self) {
+        *self.state_changed.borrow_mut() = false;
     }
 }
 
@@ -163,8 +202,12 @@ mod wasm {
             // Those that are new here, are unrendered and those old require re-rendering
             if let Some(mut old_comp) = old_vnode {
                 if self.type_id == old_comp.type_id {
-                    // Throw out the newer component and reuse older
-                    // TODO: Push updated props
+                    // Throw out the newer component, reuse older and pass the newer props
+                    unsafe {
+                        // Safe to use because both the props are of same type as both
+                        // components are of same type
+                        old_comp.set_props(self.take_props());
+                    }
                     old_comp.dom_render(parent, next, render_req);
                     old_comp
                 } else {
@@ -228,7 +271,8 @@ mod wasm {
                 self.rendered = Some(Box::new(rendered));
                 instance.mounted();
             } else {
-                if self.state_changed() || self.props.is_some() {
+                if self.state_changed() {
+                    self.unset_state_changed();
                     let old_rendered = self.rendered.take().unwrap();
                     // TODO: Support props
                     let instance = self.instance.as_mut().unwrap();
