@@ -117,6 +117,11 @@ impl VComponent {
         props_setter(self.instance.as_mut().unwrap(), props);
     }
 
+    fn take_props(&mut self) -> *mut Props {
+        self.props.take()
+            .expect("Props already taken")
+    }
+
     fn state_changed(&self) -> bool {
         *self.state_changed.borrow()
     }
