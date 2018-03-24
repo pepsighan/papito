@@ -67,13 +67,22 @@ pub fn ev<E, T, F>(listener: E) -> Box<events::DOMEvent> where
 
 #[macro_export]
 macro_rules! h {
-    // Creates a component vnode
+    // Creates a component vnode with map as props where props is a struct
     (comp $t:ty, { $( $k:ident => $v:expr ),* } $(,)*) => {{
         type T = <$t as Component>::Props;
         $crate::h($crate::comp::<$t>(T {
             $( $k: $v ),*
         }))
     }};
+    // Creates a component vnode with tuple as props where props is a struct
+    (comp $t:ty, ( $( $v:expr ),* ), $(,)*) => {{
+        type T = <$t as Component>::Props;
+        $crate::h($crate::comp::<$t>(T ( $( $v ),* )))
+    }};
+    // Creates a component vnode with no props
+    (comp $t:ty) => {
+        $crate::h($crate::comp::<$t>(()))
+    };
     // Creates vnodes from a vec
     (vec $n:expr) => {
         $crate::h($crate::li($n));
@@ -365,7 +374,9 @@ mod test {
         struct Button;
 
         impl Component for Button {
-            fn create(_: Box<Fn()>) -> Self {
+            type Props = ();
+
+            fn create(_: (), _: Box<Fn()>) -> Self {
                 Button
             }
         }
@@ -379,7 +390,7 @@ mod test {
 
         let node = h!(comp Button);
         assert_eq!(
-            VNode::Component(VComponent::new::<Button>()),
+            VNode::Component(VComponent::new::<Button>(())),
             node
         );
     }
@@ -452,7 +463,9 @@ mod test {
         struct Button;
 
         impl Component for Button {
-            fn create(_: Box<Fn()>) -> Self {
+            type Props = ();
+
+            fn create(_: (), _: Box<Fn()>) -> Self {
                 Button
             }
         }
@@ -473,7 +486,9 @@ mod test {
         struct Button;
 
         impl Component for Button {
-            fn create(_: Box<Fn()>) -> Self {
+            type Props = ();
+
+            fn create(_: (), _: Box<Fn()>) -> Self {
                 Button
             }
         }
@@ -488,7 +503,9 @@ mod test {
         struct Div;
 
         impl Component for Div {
-            fn create(_: Box<Fn()>) -> Self {
+            type Props = ();
+
+            fn create(_:(), _: Box<Fn()>) -> Self {
                 Div
             }
         }
