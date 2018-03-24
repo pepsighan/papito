@@ -186,8 +186,12 @@ mod wasm {
             // Those that are new here, are unrendered and those old require re-rendering
             if let Some(mut old_comp) = old_vnode {
                 if self.type_id == old_comp.type_id {
-                    // Throw out the newer component and reuse older
-                    // TODO: Push updated props
+                    // Throw out the newer component, reuse older and pass the newer props
+                    unsafe {
+                        // Safe to use because both the props are of same type as both
+                        // components are of same type
+                        old_comp.set_props(self.take_props());
+                    }
                     old_comp.dom_render(parent, next, render_req);
                     old_comp
                 } else {
