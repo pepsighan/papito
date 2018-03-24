@@ -95,7 +95,7 @@ mod wasm {
                     next_node = v.dom_node();
                     children.insert(k, v);
                 }
-                self.children = children;
+                self.children = children.into_iter().rev().collect();
                 if has_dirty_order(&self, &old_children_pos) {
                     update_positions(&self, parent, &old_children_pos);
                 }
