@@ -20,7 +20,9 @@ pub trait RenderToString {
 }
 
 pub trait Component: Lifecycle {
-    fn create(notifier: Box<Fn()>) -> Self;
+    type Props;
+
+    fn create(props: Self::Props, notifier: Box<Fn()>) -> Self;
 }
 
 pub trait Lifecycle: Render {
