@@ -74,41 +74,49 @@ mod wasm {
     use CowStr;
     use traits::DOMRender;
     use events::RenderRequestSender;
+    use indexmap::IndexMap;
 
     impl DOMPatch<VList> for VList {
-        fn patch(&mut self, parent: &Element, next: Option<&Node>, old_vnodes: Option<&mut VList>, render_req: RenderRequestSender) {
-            if let Some(old_vnodes) = old_vnodes {
-                let mut patched_node_keys = vec![];
-                {
-                    let mut next_node = next.map(|it| it.clone());
-                    for (k, v) in self.children.iter_mut().rev() {
-                        if let Some(pre_vnode) = old_vnodes.children.get_mut(k) {
-                            // Patch if any old VNode found
-                            v.patch(parent, next_node.as_ref(), Some(pre_vnode), render_req.clone());
-                            patched_node_keys.push(k.clone());
-                        } else {
-                            v.patch(parent, next_node.as_ref(), None, render_req.clone());
-                        }
-                        next_node = v.dom_node();
-                    }
+        fn patch(mut self, parent: &Element, next: Option<&Node>, old_vnodes: Option<VList>, render_req: RenderRequestSender) -> Self {
+            if let Some(mut old_vnodes) = old_vnodes {
+                let old_children_pos: IndexMap<CowStr, usize> = old_vnodes.children.iter()
+                    .enumerate()
+                    .map(|(pos, (k, _))| (k.clone(), pos))
+                    .collect();
+                let mut next_node = next.map(|it| it.clone());
+                let mut children = IndexMap::new();
+                for (k, v) in self.children.into_iter().rev() {
+                    let v = if let Some(mut pre_vnode) = old_vnodes.children.swap_remove(&k) {
+                        // Patch if any old VNode found
+                        v.patch(parent, next_node.as_ref(), Some(pre_vnode), render_req.clone())
+                    } else {
+                        v.patch(parent, next_node.as_ref(), None, render_req.clone())
+                    };
+                    next_node = v.dom_node();
+                    children.insert(k, v);
                 }
-                if has_dirty_order(&self, &old_vnodes) {
-                    update_positions(&self, parent, &old_vnodes);
+                self.children = children;
+                if has_dirty_order(&self, &old_children_pos) {
+                    update_positions(&self, parent, &old_children_pos);
                 }
-                remove_old_vnodes(old_vnodes, patched_node_keys, parent);
+                remove_old_vnodes(old_vnodes, parent);
             } else {
-                for (_, v) in self.children.iter_mut() {
-                    v.patch(parent, None, None, render_req.clone());
+                let mut children = IndexMap::new();
+                for (k, v) in self.children {
+                    let v = v.patch(parent, None, None, render_req.clone());
+                    children.insert(k, v);
                 }
+                self.children = children;
             }
+            self
         }
     }
 
-    fn has_dirty_order(new_vnodes: &VList, old_nodes: &VList) -> bool {
+    fn has_dirty_order(new_vnodes: &VList, old_nodes: &IndexMap<CowStr, usize>) -> bool {
         let mut old_last_position = 0;
         for (k, _) in new_vnodes.children.iter() {
-            let old_pos = if let Some(pos) = old_nodes.position(k) {
-                pos
+            let old_pos = if let Some(pos) = old_nodes.get(k) {
+                *pos
             } else {
                 // new nodes not considered for order
                 continue;
@@ -122,11 +130,11 @@ mod wasm {
         false
     }
 
-    fn update_positions(new_vnodes: &VList, parent: &Element, old_vnodes: &VList) {
+    fn update_positions(new_vnodes: &VList, parent: &Element, old_vnodes: &IndexMap<CowStr, usize>) {
         let mut next_key = None;
         for (k, new_node) in new_vnodes.children.iter().rev() {
             let new_pos = new_vnodes.position(k);
-            let old_pos = old_vnodes.position(k);
+            let old_pos = old_vnodes.get(k).map(|it| *it);
             if old_pos.is_none() {
                 // It is a new node and already inserted to the write place.
             } else if new_pos.unwrap() != old_pos.unwrap() {
@@ -141,17 +149,15 @@ mod wasm {
         }
     }
 
-    fn remove_old_vnodes(old_vnodes: &mut VList, patched_node_keys: Vec<CowStr>, parent: &Element) {
-        for (k, v) in old_vnodes.children.iter_mut() {
-            if patched_node_keys.iter().position(|it| it == k).is_none() {
-                v.remove(parent);
-            }
+    fn remove_old_vnodes(old_vnodes: VList, parent: &Element) {
+        for (_, v) in old_vnodes.children {
+            v.remove(parent);
         }
     }
 
     impl DOMRemove for VList {
-        fn remove(&mut self, parent: &Element) {
-            for (_, child) in self.children.iter_mut() {
+        fn remove(self, parent: &Element) {
+            for (_, child) in self.children {
                 child.remove(parent);
             }
         }
@@ -178,10 +184,14 @@ mod wasm {
     }
 
     impl DOMRender for VList {
-        fn dom_render(&mut self, parent: &Element, next: Option<&Node>, render_req: RenderRequestSender) {
-            for (_, child) in self.children.iter_mut() {
-                child.dom_render(parent, next, render_req.clone());
+        fn dom_render(mut self, parent: &Element, next: Option<&Node>, render_req: RenderRequestSender) -> Self {
+            let mut children = IndexMap::new();
+            for (k, child) in self.children {
+                let child = child.dom_render(parent, next, render_req.clone());
+                children.insert(k, child);
             }
+            self.children = children;
+            self
         }
     }
 }

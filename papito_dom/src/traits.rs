@@ -6,7 +6,7 @@ use events::RenderRequestSender;
 
 #[cfg(target_arch = "wasm32")]
 pub trait DOMRender {
-    fn dom_render(&mut self, parent: &Element, next: Option<&Node>, render_req: RenderRequestSender);
+    fn dom_render(self, parent: &Element, next: Option<&Node>, render_req: RenderRequestSender) -> Self;
 }
 
 #[cfg(not(target_arch = "wasm32"))]

@@ -49,7 +49,7 @@ mod wasm {
     use events::RenderRequestSender;
 
     impl DOMPatch<VText> for VText {
-        fn patch(&mut self, parent: &Element, next: Option<&Node>, old_vnode: Option<&mut VText>, _: RenderRequestSender) {
+        fn patch(mut self, parent: &Element, next: Option<&Node>, old_vnode: Option<VText>, _: RenderRequestSender) -> Self {
             if let Some(old_vnode) = old_vnode {
                 let text_node = old_vnode.dom_ref().unwrap().clone();
                 if old_vnode.content != self.content {
@@ -65,6 +65,7 @@ mod wasm {
                     parent.append_child(self.dom_ref().unwrap());
                 }
             }
+            self
         }
     }
 
@@ -81,7 +82,7 @@ mod wasm {
     }
 
     impl DOMRemove for VText {
-        fn remove(&mut self, parent: &Element) {
+        fn remove(mut self, parent: &Element) {
             parent.remove_child(&self.dom_ref.take()
                 .expect("Cannot remove non-existent text node.")
             ).unwrap();
