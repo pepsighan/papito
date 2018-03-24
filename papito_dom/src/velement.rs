@@ -348,11 +348,10 @@ mod wasm {
     }
 
     impl DOMRender for VElement {
-        fn dom_render(mut self, parent: &Element, next: Option<&Node>, render_req: RenderRequestSender) -> Self {
-            if let Some(child) = self.child {
-                self.child = Some(Box::new(child.dom_render(parent, next, render_req)));
+        fn dom_render(&mut self, parent: &Element, next: Option<&Node>, render_req: RenderRequestSender) {
+            if let Some(ref mut child) = self.child {
+                child.dom_render(parent, next, render_req);
             }
-            self
         }
     }
 }

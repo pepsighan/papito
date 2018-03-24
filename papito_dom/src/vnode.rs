@@ -136,12 +136,12 @@ mod wasm {
     }
 
     impl DOMRender for VNode {
-        fn dom_render(self, parent: &Element, next: Option<&Node>, render_req: RenderRequestSender) -> Self {
-            match self {
-                VNode::Component(component) => component.dom_render(parent, next, render_req).into(),
-                VNode::List(list) => list.dom_render(parent, next, render_req).into(),
-                VNode::Element(element) => element.dom_render(parent, next, render_req).into(),
-                text => text
+        fn dom_render(&mut self, parent: &Element, next: Option<&Node>, render_req: RenderRequestSender) {
+            match *self {
+                VNode::Component(ref mut component) => component.dom_render(parent, next, render_req),
+                VNode::List(ref mut list) => list.dom_render(parent, next, render_req),
+                VNode::Element(ref mut element) => element.dom_render(parent, next, render_req),
+                VNode::Text(_) => {}
             }
         }
     }

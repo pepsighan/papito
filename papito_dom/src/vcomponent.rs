@@ -157,28 +157,31 @@ mod wasm {
     use events::RenderRequestSender;
 
     impl DOMPatch<VComponent> for VComponent {
-        fn patch(self, parent: &Element, next: Option<&Node>, old_vnode: Option<VComponent>, render_req: RenderRequestSender) -> Self {
+        fn patch(mut self, parent: &Element, next: Option<&Node>, old_vnode: Option<VComponent>, render_req: RenderRequestSender) -> Self {
             // Those that are new here, are unrendered and those old require re-rendering
-            if let Some(old_comp) = old_vnode {
+            if let Some(mut old_comp) = old_vnode {
                 if self.type_id == old_comp.type_id {
                     // Throw out the newer component and reuse older
                     // TODO: Push updated props
-                    old_comp.dom_render(parent, next, render_req)
+                    old_comp.dom_render(parent, next, render_req);
+                    old_comp
                 } else {
                     old_comp.remove(parent);
-                    create_new_component_render(self, parent, next, render_req)
+                    create_new_component_render(&mut self, parent, next, render_req);
+                    self
                 }
             } else {
-                create_new_component_render(self, parent, next, render_req)
+                create_new_component_render(&mut self, parent, next, render_req);
+                self
             }
         }
     }
 
-    fn create_new_component_render(vcomp: VComponent, parent: &Element, next: Option<&Node>, render_req: RenderRequestSender) -> VComponent {
+    fn create_new_component_render(vcomp: &mut VComponent, parent: &Element, next: Option<&Node>, render_req: RenderRequestSender) {
         debug_assert!(vcomp.instance.is_none());
         debug_assert!(vcomp.rendered.is_none());
         // Requires an initial render as they are very new
-        vcomp.dom_render(parent, next, render_req)
+        vcomp.dom_render(parent, next, render_req);
     }
 
     impl DOMRemove for VComponent {
@@ -211,7 +214,7 @@ mod wasm {
     }
 
     impl DOMRender for VComponent {
-        fn dom_render(mut self, parent: &Element, next: Option<&Node>, render_req: RenderRequestSender) -> Self {
+        fn dom_render(&mut self, parent: &Element, next: Option<&Node>, render_req: RenderRequestSender) {
             if self.instance.is_none() {
                 self.init(render_req.clone());
             }
@@ -223,8 +226,8 @@ mod wasm {
                 self.rendered = Some(Box::new(rendered));
                 instance.mounted();
             } else {
-                let old_rendered = self.rendered.take().unwrap();
                 if self.state_changed() {
+                    let old_rendered = self.rendered.take().unwrap();
                     // TODO: Support props
                     let instance = self.instance.as_mut().unwrap();
                     let newly_rendered = instance.render();
@@ -233,10 +236,9 @@ mod wasm {
                     instance.updated();
                 } else {
                     // No change. Propagate till a changed/new component is found
-                    self.rendered = Some(Box::new(old_rendered.dom_render(parent, next, render_req)));
+                    self.rendered.as_mut().unwrap().dom_render(parent, next, render_req);
                 }
             }
-            self
         }
     }
 }

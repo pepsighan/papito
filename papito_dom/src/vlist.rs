@@ -184,14 +184,10 @@ mod wasm {
     }
 
     impl DOMRender for VList {
-        fn dom_render(mut self, parent: &Element, next: Option<&Node>, render_req: RenderRequestSender) -> Self {
-            let mut children = IndexMap::new();
-            for (k, child) in self.children {
-                let child = child.dom_render(parent, next, render_req.clone());
-                children.insert(k, child);
+        fn dom_render(&mut self, parent: &Element, next: Option<&Node>, render_req: RenderRequestSender) {
+            for (_, child) in self.children.iter_mut() {
+                child.dom_render(parent, next, render_req.clone());
             }
-            self.children = children;
-            self
         }
     }
 }
