@@ -24,7 +24,7 @@ pub struct VComponent {
     #[cfg(not(target_arch = "wasm32"))]
     initializer: Box<Fn(*mut Props) -> Box<Lifecycle>>,
     #[cfg(target_arch = "wasm32")]
-    props_setter: Box<Fn(&mut Box<Lifecycle>, *mut Props)>,
+    props_setter: Box<Fn(&mut Box<Lifecycle>, Rc<RefCell<bool>>, *mut Props)>,
     rendered: Option<Box<VNode>>,
     state_changed: Rc<RefCell<bool>>,
 }
@@ -52,13 +52,20 @@ impl VComponent {
                 };
                 Box::new(T::create(props, notifier))
             }),
-            props_setter: Box::new(|instance, props| {
+            props_setter: Box::new(|instance, state_changed, props| {
                 let props: T::Props = unsafe {
                     *Box::from_raw(mem::transmute(props))
                 };
                 let instance = instance.as_any().downcast_mut::<T>()
                     .expect("Impossible. The instance cannot be of any other type");
-                T::update(instance, props);
+                let is_diff = {
+                    let old_props = T::props(instance);
+                    &props != old_props
+                };
+                if is_diff {
+                    T::update(instance, props);
+                    *state_changed.borrow_mut() = true;
+                }
             }),
             rendered: None,
             state_changed,
@@ -114,7 +121,12 @@ impl VComponent {
     unsafe fn set_props(&mut self, props: *mut Props) {
         debug_assert!(self.instance.is_some());
         let props_setter = &self.props_setter;
-        props_setter(self.instance.as_mut().unwrap(), props);
+        props_setter(self.instance.as_mut().unwrap(), self.state_changed.clone(), props);
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    fn instance_props<T: Component>(&self) -> T::Props {
+        unimplemented!()
     }
 
     fn take_props(&mut self) -> *mut Props {
@@ -124,6 +136,10 @@ impl VComponent {
 
     fn state_changed(&self) -> bool {
         *self.state_changed.borrow()
+    }
+
+    fn unset_state_changed(&self) {
+        *self.state_changed.borrow_mut() = false;
     }
 }
 
@@ -256,6 +272,7 @@ mod wasm {
                 instance.mounted();
             } else {
                 if self.state_changed() {
+                    self.unset_state_changed();
                     let old_rendered = self.rendered.take().unwrap();
                     // TODO: Support props
                     let instance = self.instance.as_mut().unwrap();

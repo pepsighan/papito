@@ -21,11 +21,13 @@ pub trait RenderToString {
 }
 
 pub trait Component: Lifecycle {
-    type Props;
+    type Props: PartialEq;
 
     fn create(props: Self::Props, notifier: Box<Fn()>) -> Self;
 
     fn update(&mut self, props: Self::Props);
+
+    fn props(&self) -> &Self::Props;
 }
 
 pub trait Lifecycle: Render + AsAny {
