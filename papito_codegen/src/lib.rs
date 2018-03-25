@@ -46,32 +46,3 @@ pub fn component(_metadata: TokenStream, input: TokenStream) -> TokenStream {
     };
     expanded.into()
 }
-
-#[proc_macro]
-pub fn component_of(input: TokenStream) -> TokenStream {
-    let mut ty: Type = syn::parse(input).expect("Expected the argument to be a type");
-    match ty {
-        Type::Path(TypePath { qself: None, ref mut path }) => {
-            let last_segment = match path.segments.pop().unwrap() {
-                Pair::End(PathSegment { ident, arguments }) => {
-                    let ident = Ident::new(&format!("{}Component", ident), Span::call_site());
-                    PathSegment {
-                        ident,
-                        arguments
-                    }
-                },
-                _ => unreachable!()
-            };
-            path.segments.push(last_segment);
-        },
-        _ => {
-            ty.span().unstable()
-                .error("The type is not a component")
-                .emit();
-        }
-    }
-    let expanded = quote! {
-        #ty
-    };
-    expanded.into()
-}
