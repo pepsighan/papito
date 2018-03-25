@@ -29,7 +29,7 @@ mod traits;
 pub use traits::DOMRender;
 #[cfg(target_arch = "wasm32")]
 pub use events::{DOMEventListener, RenderRequest};
-pub use traits::{Render, Component, Lifecycle};
+pub use traits::{Render, Component, Lifecycle, ComponentOf};
 
 pub mod prelude {
     pub use vnode::VNode;
