@@ -3,7 +3,7 @@ extern crate papito_dom;
 extern crate stdweb;
 
 use papito_dom::prelude::VNode;
-use papito_dom::{comp, h, DOMRender, RenderRequest, Component};
+use papito_dom::{comp, h, DOMRender, RenderRequest, Component, ComponentOf};
 use stdweb::web::{document, Element, INonElementParentNode};
 use std::ops::Deref;
 
@@ -17,13 +17,13 @@ pub struct App {
 }
 
 impl App {
-    pub fn new<T: Component<Props=()> + 'static>() -> App {
+    pub fn new<T: Component<Props=()> + 'static, C: ComponentOf<Comp=T>>() -> App {
         js! { @(no_return)
             window.__schedule_papito_render__ = function() {};
         }
 
         App {
-            vdom: h(comp::<T>(())),
+            vdom: h(comp::<C::Comp>(())),
             render_req: RenderRequest::new(|| {
                 js! { @(no_return)
                     window.__schedule_papito_render__();
