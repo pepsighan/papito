@@ -12,10 +12,11 @@ use syn::{Item, DeriveInput};
 
 mod component;
 mod render;
+mod events;
 
 #[proc_macro_attribute]
 pub fn component(_metadata: TokenStream, input: TokenStream) -> TokenStream {
-    let state: Item = syn::parse(input).expect("Expected it to be an Item");
+    let state: Item = syn::parse(input).unwrap();
     let component = component::quote(state);
     let expanded = quote! {
         #component
@@ -25,7 +26,7 @@ pub fn component(_metadata: TokenStream, input: TokenStream) -> TokenStream {
 
 #[proc_macro_attribute]
 pub fn render(_metadata: TokenStream, input: TokenStream) -> TokenStream {
-    let item: Item = syn::parse(input).expect("Expected it to be an Item");
+    let item: Item = syn::parse(input).unwrap();
     let new_impl = render::quote(item);
     let expanded = quote! {
         #new_impl
@@ -39,6 +40,16 @@ pub fn derive_lifecycle(input: TokenStream) -> TokenStream {
     let ident = &derive.ident;
     let expanded = quote! {
         impl ::papito::prelude::Lifecycle for #ident {}
+    };
+    expanded.into()
+}
+
+#[proc_macro_attribute]
+pub fn events(_metadata: TokenStream, input: TokenStream) -> TokenStream {
+    let state: Item = syn::parse(input).unwrap();
+    let event = events::quote(state);
+    let expanded = quote! {
+        #event
     };
     expanded.into()
 }
