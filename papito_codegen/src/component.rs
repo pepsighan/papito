@@ -199,6 +199,11 @@ fn impl_state_setters(state: &Ident, fields: &Fields) -> Tokens {
             quote! {
                 impl #state {
                     #(#setters)*
+
+                    fn notifier(&self) {
+                        let notifier = &self.notifier;
+                        notifier();
+                    }
                 }
             }
         },
