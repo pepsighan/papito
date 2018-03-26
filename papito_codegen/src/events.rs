@@ -35,12 +35,13 @@ fn impl_wrapper_for_any_events(items: Vec<ImplItem>, comp_path: Path) -> Tokens 
         if has_event_attribute(&method_item) {
             let (fn_name, self_arg, event_arg) = get_metadata(method_item);
             let event_ty = &event_arg.ty;
+            let event_ident = Ident::from("ev".to_string());
             if self_arg.mutability.is_some() {
                 event_wrappers.push(quote! {
                     fn #fn_name(&self) -> impl FnMut(#event_ty) {
                         let comp = self.inner.clone();
-                        move |#event_arg| {
-                            comp.borrow_mut().#fn_name();
+                        move |#event_ident| {
+                            comp.borrow_mut().#fn_name(#event_ident);
                         }
                     }
                 })
@@ -48,8 +49,8 @@ fn impl_wrapper_for_any_events(items: Vec<ImplItem>, comp_path: Path) -> Tokens 
                 event_wrappers.push(quote! {
                     fn #fn_name(&self) -> impl Fn(#event_ty) {
                         let comp = self.inner.clone();
-                        move |#event_arg| {
-                            comp.borrow().#fn_name();
+                        move |#event_ident| {
+                            comp.borrow().#fn_name(#event_ident);
                         }
                     }
                 })
