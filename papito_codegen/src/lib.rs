@@ -44,8 +44,8 @@ fn quote_struct_item(item: &ItemStruct) -> Tokens {
         }
     };
     let component_of = quote! {
-        impl ::papito_dom::ComponentOf for #comp_ident {
-            type Comp = #state_ident;
+        impl ::papito_dom::ComponentOf for #state_ident {
+            type Comp = #comp_ident;
         }
     };
     let lifecycle_impl = quote! {
