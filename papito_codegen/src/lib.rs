@@ -42,6 +42,11 @@ pub fn derive_lifecycle(input: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn events(_metadata: TokenStream, input: TokenStream) -> TokenStream {
     let state: Item = syn::parse(input).unwrap();
-    let expanded = events::quote(state);
+    let wrapper = events::quote(&state);
+    let expanded = quote! {
+        #state
+
+        #wrapper
+    };
     expanded.into()
 }
