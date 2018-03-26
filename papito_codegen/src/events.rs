@@ -1,5 +1,6 @@
 use quote::Tokens;
-use syn::{Item, Type, Ident, Path, ImplItem, ImplItemMethod, FnArg, ArgSelfRef, ArgCaptured};
+use syn::{Item, Type, Ident, Path, ImplItem, ImplItemMethod, FnArg, ArgSelfRef, ArgCaptured,
+          ReturnType};
 use common::{split_path, component_of_state};
 
 pub fn quote(item: &Item) -> Tokens {
@@ -69,21 +70,25 @@ fn has_event_attribute(item: &ImplItemMethod) -> bool {
 fn get_metadata(item: ImplItemMethod) -> (Ident, ArgSelfRef, ArgCaptured) {
     let sig = item.sig;
     let fn_name = sig.ident;
-    let mut args = sig.decl.inputs.into_iter();
-    let first_arg = args.next().expect("This method has no argument");
-    let second_arg = args.next().expect("This method should have second argument");
+    let decl = sig.decl;
+    if decl.output != ReturnType::Default {
+        panic!("This event method `{}` cannot have a return type", &fn_name)
+    }
+    let mut args = decl.inputs.into_iter();
+    let first_arg = args.next().expect(&format!("This method `{}` has no argument", &fn_name));
+    let second_arg = args.next().expect(&format!("This method `{}` does not have second argument", &fn_name));
     if let Some(_) = args.next() {
-        panic!("This method cannot have any more that 2 arguments");
+        panic!("This method `{}` cannot have any more that 2 arguments", &fn_name);
     }
     let first_arg = if let FnArg::SelfRef(self_arg) = first_arg {
         self_arg
     } else {
-        panic!("The first arg can only be `&self` or `&mut self`");
+        panic!("The first arg of `{}` can only be `&self` or `&mut self`", &fn_name);
     };
     let second_arg = if let FnArg::Captured(arg) = second_arg {
         arg
     } else {
-        panic!("The second arg must be an explicit type");
+        panic!("The second arg of `{}` must be an explicit type", &fn_name);
     };
     (fn_name, first_arg, second_arg)
 }
