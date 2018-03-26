@@ -118,21 +118,22 @@ pub fn render(_metadata: TokenStream, input: TokenStream) -> TokenStream {
         Item::Impl(item_impl) => {
             let (_, trait_, _) = item_impl.trait_.expect("The `#[render]` attribute is only allowed on `papito::prelude::Render` trait impl block");
             let self_ty = *item_impl.self_ty;
-            let comp_ty = match self_ty.clone() {
+            let (comp_ty, assert_mod_ident) = match self_ty.clone() {
                 Type::Path(TypePath { qself, mut path }) => {
                     if qself.is_some() {
                         panic!("No self-type allowed on the concrete type");
                     }
                     let mut last_segment = path.segments.pop().unwrap();
-                    let last_segment = match last_segment {
+                    let (last_segment, assert_mod_ident) = match last_segment {
                         Pair::End(mut segment) => {
+                            let assert_mod_ident = Ident::from(format!("{}RenderAssertions", &segment.ident).to_snake_case());
                             segment.ident = Ident::from(format!("{}Component", segment.ident));
-                            segment
+                            (segment, assert_mod_ident)
                         },
                         _ => unreachable!()
                     };
                     path.segments.push(last_segment);
-                    path
+                    (path, assert_mod_ident)
                 }
                 _ => {
                     panic!("Only type paths are allowed to be implemented by `::papito::prelude::Render`");
@@ -140,6 +141,11 @@ pub fn render(_metadata: TokenStream, input: TokenStream) -> TokenStream {
             };
             let impl_items = item_impl.items;
             quote! {
+                mod #assert_mod_ident {
+                    struct _AssertLifecycle where #self_ty: ::papito::prelude::Lifecycle;
+                    struct _AssertComponent where #comp_ty: ::papito_dom::Component;
+                }
+
                 impl #trait_ for #comp_ty {
                     #(#impl_items)*
                 }
