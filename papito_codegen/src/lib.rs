@@ -50,3 +50,9 @@ pub fn events(_metadata: TokenStream, input: TokenStream) -> TokenStream {
     };
     expanded.into()
 }
+
+// Just a placeholder attribute to be used by `#[events]` otherwise it does not compile
+#[proc_macro_attribute]
+pub fn event(_metadata: TokenStream, input: TokenStream) -> TokenStream {
+    input
+}
