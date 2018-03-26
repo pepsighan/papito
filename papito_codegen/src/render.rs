@@ -47,7 +47,7 @@ fn impl_render(item_impl: ItemImpl) -> Tokens {
 
 fn modify_state_path_to_component_path(type_path: TypePath) -> (Path, Ident) {
     let TypePath { qself, mut path } = type_path;
-    assert!(qself.is_some(), "No self-type allowed on the concrete type");
+    assert!(qself.is_none(), "No self-type allowed on the concrete type");
     let last_segment = path.segments.pop().unwrap();
     let (last_segment, assert_mod_ident) = match last_segment {
         Pair::End(mut segment) => {
