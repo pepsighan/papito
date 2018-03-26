@@ -8,7 +8,7 @@ extern crate heck;
 extern crate proc_macro2;
 
 use proc_macro::TokenStream;
-use syn::{Item, Ident, ItemStruct, Type, TypePath};
+use syn::{Item, Ident, ItemStruct, Type, TypePath, Fields, FieldsNamed, FieldsUnnamed};
 use syn::punctuated::Pair;
 use quote::Tokens;
 use heck::SnakeCase;
@@ -57,26 +57,7 @@ fn quote_struct_item(item: &ItemStruct) -> Tokens {
             type Comp = #comp_ident;
         }
     };
-    let component_impl = quote! {
-        impl ::papito_dom::Component for #comp_ident {
-            type Props = ();
-
-            fn create(props: Self::Props, notifier: Box<Fn()>) -> Self {
-                let state = #state_ident;
-                #comp_ident {
-                    inner: ::std::rc::Rc::new(::std::cell::RefCell::new(state))
-                }
-            }
-
-            fn update(&mut self, props: Self::Props) {
-                unimplemented!();
-            }
-
-            fn props(&self) -> &Self::Props {
-                unimplemented!();
-            }
-        }
-    };
+    let component_impl = quote_component_impl(&comp_ident, &state_ident, state_fields);
     let lifecycle_impl = quote! {
         impl ::papito::prelude::Lifecycle for #comp_ident {
             fn created(&mut self) {
@@ -108,6 +89,83 @@ fn quote_struct_item(item: &ItemStruct) -> Tokens {
         #component_impl
 
         #lifecycle_impl
+    }
+}
+
+fn quote_component_impl(comp_ident: &Ident, state_ident: &Ident, fields: &Fields) -> Tokens {
+    let create_fn = match *fields {
+        Fields::Named(ref fields_named) => {
+            quote_fields_named(comp_ident, state_ident, fields_named)
+        },
+        Fields::Unnamed(ref fields_unnamed) => {
+            quote_fields_unnamed(comp_ident, state_ident, fields_unnamed)
+        },
+        Fields::Unit => {
+            quote_unit_field(comp_ident, state_ident)
+        }
+    };
+    quote! {
+        impl ::papito_dom::Component for #comp_ident {
+            type Props = ();
+
+            #create_fn
+
+            fn update(&mut self, props: Self::Props) {
+                unimplemented!();
+            }
+
+            fn props(&self) -> &Self::Props {
+                unimplemented!();
+            }
+        }
+    }
+}
+
+fn quote_fields_named(comp_ident: &Ident, state_ident: &Ident, fields: &FieldsNamed) -> Tokens {
+    let mut field_inits = vec![];
+    for field in fields.named.iter() {
+        let ident = &field.ident.unwrap();
+        field_inits.push(quote! {
+            #ident: Default::default()
+        });
+    }
+    quote! {
+        fn create(props: Self::Props, notifier: Box<Fn()>) -> Self {
+            let state = #state_ident {
+                #(#field_inits),*
+            };
+            #comp_ident {
+                inner: ::std::rc::Rc::new(::std::cell::RefCell::new(state))
+            }
+        }
+    }
+}
+
+fn quote_fields_unnamed(comp_ident: &Ident, state_ident: &Ident, fields: &FieldsUnnamed) -> Tokens {
+    let mut field_inits = vec![];
+    for _ in fields.unnamed.iter() {
+        field_inits.push(quote! {
+            Default::default()
+        });
+    }
+    quote! {
+        fn create(props: Self::Props, notifier: Box<Fn()>) -> Self {
+            let state = #state_ident ( #(#field_inits),* );
+            #comp_ident {
+                inner: ::std::rc::Rc::new(::std::cell::RefCell::new(state))
+            }
+        }
+    }
+}
+
+fn quote_unit_field(comp_ident: &Ident, state_ident: &Ident) -> Tokens {
+    quote! {
+        fn create(props: Self::Props, notifier: Box<Fn()>) -> Self {
+            let state = #state_ident;
+            #comp_ident {
+                inner: ::std::rc::Rc::new(::std::cell::RefCell::new(state))
+            }
+        }
     }
 }
 
