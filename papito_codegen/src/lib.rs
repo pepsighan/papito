@@ -8,7 +8,7 @@ extern crate heck;
 extern crate proc_macro2;
 
 use proc_macro::TokenStream;
-use syn::{Item, Ident, ItemStruct, Type, TypePath, Fields, FieldsNamed, FieldsUnnamed};
+use syn::{Item, Ident, ItemStruct, DeriveInput, Type, TypePath, Fields, FieldsNamed, FieldsUnnamed};
 use syn::punctuated::Pair;
 use quote::Tokens;
 use heck::SnakeCase;
@@ -221,6 +221,16 @@ pub fn render(_metadata: TokenStream, input: TokenStream) -> TokenStream {
     };
     let expanded = quote! {
         #new_impl
+    };
+    expanded.into()
+}
+
+#[proc_macro_derive(Lifecycle)]
+pub fn derive_lifecycle(input: TokenStream) -> TokenStream {
+    let derive: DeriveInput = syn::parse(input).unwrap();
+    let ident = &derive.ident;
+    let expanded = quote! {
+        impl ::papito::prelude::Lifecycle for #ident {}
     };
     expanded.into()
 }
