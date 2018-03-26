@@ -97,8 +97,8 @@ fn quote_component_impl(comp_ident: &Ident, state_ident: &Ident, fields: &Fields
         Fields::Named(ref fields_named) => {
             quote_fields_named(comp_ident, state_ident, fields_named)
         },
-        Fields::Unnamed(ref fields_unnamed) => {
-            quote_fields_unnamed(comp_ident, state_ident, fields_unnamed)
+        Fields::Unnamed(_) => {
+            panic!("Tuple structs are not supported as components");
         },
         Fields::Unit => {
             quote_unit_field(comp_ident, state_ident)
@@ -132,25 +132,9 @@ fn quote_fields_named(comp_ident: &Ident, state_ident: &Ident, fields: &FieldsNa
     quote! {
         fn create(props: Self::Props, notifier: Box<Fn()>) -> Self {
             let state = #state_ident {
-                #(#field_inits),*
+                #(#field_inits),*,
+                notifier
             };
-            #comp_ident {
-                inner: ::std::rc::Rc::new(::std::cell::RefCell::new(state))
-            }
-        }
-    }
-}
-
-fn quote_fields_unnamed(comp_ident: &Ident, state_ident: &Ident, fields: &FieldsUnnamed) -> Tokens {
-    let mut field_inits = vec![];
-    for _ in fields.unnamed.iter() {
-        field_inits.push(quote! {
-            Default::default()
-        });
-    }
-    quote! {
-        fn create(props: Self::Props, notifier: Box<Fn()>) -> Self {
-            let state = #state_ident ( #(#field_inits),* );
             #comp_ident {
                 inner: ::std::rc::Rc::new(::std::cell::RefCell::new(state))
             }
@@ -161,7 +145,9 @@ fn quote_fields_unnamed(comp_ident: &Ident, state_ident: &Ident, fields: &Fields
 fn quote_unit_field(comp_ident: &Ident, state_ident: &Ident) -> Tokens {
     quote! {
         fn create(props: Self::Props, notifier: Box<Fn()>) -> Self {
-            let state = #state_ident;
+            let state = #state_ident {
+                notifier
+            };
             #comp_ident {
                 inner: ::std::rc::Rc::new(::std::cell::RefCell::new(state))
             }
