@@ -13,6 +13,7 @@ use syn::{Item, DeriveInput};
 mod component;
 mod render;
 mod events;
+mod common;
 
 #[proc_macro_attribute]
 pub fn component(_metadata: TokenStream, input: TokenStream) -> TokenStream {

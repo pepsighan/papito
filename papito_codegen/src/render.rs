@@ -2,6 +2,7 @@ use heck::SnakeCase;
 use quote::Tokens;
 use syn::{Ident, Item, ItemImpl, Path, Type, TypePath};
 use syn::punctuated::Pair;
+use common::{component_of_state, split_path};
 
 pub fn quote(item: Item) -> Tokens {
     match item {
@@ -20,7 +21,7 @@ fn impl_render(item_impl: ItemImpl) -> Tokens {
     let self_ty = *item_impl.self_ty;
     let (comp_ty, assert_mod_ident) = match self_ty.clone() {
         Type::Path(type_path) => {
-            modify_state_path_to_component_path(type_path)
+            component_path_and_assert_ident_of(type_path)
         }
         _ => {
             panic!("Only type paths are allowed to be implemented by `::papito::prelude::Render`");
@@ -45,24 +46,11 @@ fn impl_render(item_impl: ItemImpl) -> Tokens {
     }
 }
 
-fn modify_state_path_to_component_path(type_path: TypePath) -> (Path, Ident) {
-    let TypePath { qself, mut path } = type_path;
-    assert!(qself.is_none(), "No self-type allowed on the concrete type");
-    let last_segment = path.segments.pop().unwrap();
-    let (last_segment, assert_mod_ident) = match last_segment {
-        Pair::End(mut segment) => {
-            let (comp_ident, assert_mod_ident) = generate_ident(&segment.ident);
-            segment.ident = comp_ident;
-            (segment, assert_mod_ident)
-        },
-        _ => unreachable!()
-    };
+fn component_path_and_assert_ident_of(type_path: TypePath) -> (Path, Ident) {
+    let (mut path, mut last_segment) = split_path(type_path);
+    let mod_ident = Ident::from(format!("{}RenderAssertions", &last_segment.ident)
+        .to_snake_case());
+    last_segment.ident = component_of_state(&last_segment.ident);
     path.segments.push(last_segment);
-    (path, assert_mod_ident)
-}
-
-fn generate_ident(ident: &Ident) -> (Ident, Ident) {
-    let assert_mod_ident = Ident::from(format!("{}RenderAssertions", ident).to_snake_case());
-    let comp_ident = Ident::from(format!("{}Component", ident));
-    (comp_ident, assert_mod_ident)
+    (path, mod_ident)
 }
