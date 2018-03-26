@@ -8,7 +8,8 @@ extern crate heck;
 extern crate proc_macro2;
 
 use proc_macro::TokenStream;
-use syn::{Item, Ident, ItemStruct};
+use syn::{Item, Ident, ItemStruct, Type, TypePath};
+use syn::punctuated::Pair;
 use quote::Tokens;
 use heck::SnakeCase;
 
@@ -108,4 +109,54 @@ fn quote_struct_item(item: &ItemStruct) -> Tokens {
 
         #lifecycle_impl
     }
+}
+
+#[proc_macro_attribute]
+pub fn render(_metadata: TokenStream, input: TokenStream) -> TokenStream {
+    let item: Item = syn::parse(input).expect("Expected it to be an Item");
+    let new_impl = match item {
+        Item::Impl(item_impl) => {
+            let (_, trait_, _) = item_impl.trait_.expect("The `#[render]` attribute is only allowed on `papito::prelude::Render` trait impl block");
+            let self_ty = *item_impl.self_ty;
+            let comp_ty = match self_ty.clone() {
+                Type::Path(TypePath { qself, mut path }) => {
+                    if qself.is_some() {
+                        panic!("No self-type allowed on the concrete type");
+                    }
+                    let mut last_segment = path.segments.pop().unwrap();
+                    let last_segment = match last_segment {
+                        Pair::End(mut segment) => {
+                            segment.ident = Ident::from(format!("{}Component", segment.ident));
+                            segment
+                        },
+                        _ => unreachable!()
+                    };
+                    path.segments.push(last_segment);
+                    path
+                }
+                _ => {
+                    panic!("Only type paths are allowed to be implemented by `::papito::prelude::Render`");
+                }
+            };
+            let impl_items = item_impl.items;
+            quote! {
+                impl #trait_ for #comp_ty {
+                    #(#impl_items)*
+                }
+
+                impl #trait_ for #self_ty {
+                    fn render(&self) -> ::papito_dom::prelude::VNode {
+                        unimplemented!()
+                    }
+                }
+            }
+        }
+        _ => {
+            panic!("The `#[render]` attribute is only allowed for impl blocks");
+        }
+    };
+    let expanded = quote! {
+        #new_impl
+    };
+    expanded.into()
 }
