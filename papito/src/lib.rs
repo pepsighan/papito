@@ -22,7 +22,8 @@ pub struct App {
 }
 
 impl App {
-    pub fn new<T: Component<Props=()> + 'static, C: ComponentOf<Comp=T>>() -> App {
+    pub fn new<C: ComponentOf>() -> App where
+        C::Comp: Component<Props=()> + 'static {
         #[cfg(target_arch = "wasm32")]
         js! { @(no_return)
             window.__schedule_papito_render__ = function() {};

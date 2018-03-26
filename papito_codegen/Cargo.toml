@@ -1,0 +1,13 @@
+[package]
+name = "papito_codegen"
+version = "0.1.0"
+authors = ["Sharad Chand <sharad.d.chand@gmail.com>"]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = { version = "0.12.14", features = ["full", "extra-traits"] }
+quote = "0.4.2"
+proc-macro2 = { version = "0.2.3" }
+heck = "0.3.0"
