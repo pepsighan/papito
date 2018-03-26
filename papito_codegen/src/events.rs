@@ -29,12 +29,37 @@ fn component_path_of(self_ty: Type) -> Path {
 
 fn impl_wrapper_for_any_events(items: Vec<ImplItem>, comp_path: Path) -> Tokens {
     let mut iter = items.into_iter();
+    let mut event_wrappers = vec![];
     while let Some(ImplItem::Method(method_item)) = iter.next() {
         if has_event_attribute(&method_item) {
             let (fn_name, self_arg, event_arg) = get_metadata(method_item);
+            let event_ty = &event_arg.ty;
+            if self_arg.mutability.is_some() {
+                event_wrappers.push(quote! {
+                    fn #fn_name(&self) -> impl FnMut(#event_ty) {
+                        let comp = self.inner.clone();
+                        move |#event_arg| {
+                            comp.borrow_mut().#fn_name();
+                        }
+                    }
+                })
+            } else {
+                event_wrappers.push(quote! {
+                    fn #fn_name(&self) -> impl Fn(#event_ty) {
+                        let comp = self.inner.clone();
+                        move |#event_arg| {
+                            comp.borrow().#fn_name();
+                        }
+                    }
+                })
+            }
         }
     }
-    quote!()
+    quote! {
+        impl #comp_path {
+            #(#event_wrappers)*
+        }
+    }
 }
 
 fn has_event_attribute(item: &ImplItemMethod) -> bool {

@@ -1,7 +1,6 @@
 use heck::SnakeCase;
 use quote::Tokens;
 use syn::{Ident, Item, ItemImpl, Path, Type, TypePath};
-use syn::punctuated::Pair;
 use common::{component_of_state, split_path};
 
 pub fn quote(item: Item) -> Tokens {
