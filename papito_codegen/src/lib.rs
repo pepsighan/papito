@@ -8,7 +8,7 @@ extern crate heck;
 extern crate proc_macro2;
 
 use proc_macro::TokenStream;
-use syn::{Item, Ident, ItemStruct, DeriveInput, Type, TypePath, Fields, FieldsNamed, FieldsUnnamed};
+use syn::{Item, Ident, Visibility, Attribute, ItemStruct, DeriveInput, Type, TypePath, Fields, FieldsNamed};
 use syn::punctuated::Pair;
 use quote::Tokens;
 use heck::SnakeCase;
@@ -39,9 +39,7 @@ fn quote_struct_item(item: &ItemStruct) -> Tokens {
     let assert_mod_ident = Ident::from(format!("{}Assertions", item.ident).to_snake_case());
     let state_fields = &item.fields;
     let vis = &item.vis;
-    let augmented_state = quote! {
-        #item
-    };
+    let augmented_state = quote_augmented_state(item.attrs.clone(), vis, state_ident, state_fields);
     let assert_lifecycle = quote! {
         mod #assert_mod_ident {
             struct _AssertLifecycle where #state_ident: ::papito_dom::Lifecycle;
@@ -89,6 +87,33 @@ fn quote_struct_item(item: &ItemStruct) -> Tokens {
         #component_impl
 
         #lifecycle_impl
+    }
+}
+
+fn quote_augmented_state(attrs: Vec<Attribute>, vis: &Visibility, state_ident: &Ident, fields: &Fields) -> Tokens {
+    let notifier = Ident::from("notifier".to_string());
+    match *fields {
+        Fields::Named(ref fields_named) => {
+            let named = &fields_named.named;
+            quote! {
+                #(#attrs)*
+                #vis struct #state_ident {
+                    #(#named),*,
+                    #notifier: Box<Fn()>
+                }
+            }
+        },
+        Fields::Unnamed(_) => {
+            panic!("Tuple structs are not supported as components");
+        },
+        Fields::Unit => {
+            quote! {
+                #(#attrs)*
+                #vis struct #state_ident {
+                    #notifier: Box<Fn()>
+                }
+            }
+        }
     }
 }
 
