@@ -17,20 +17,14 @@ mod events;
 #[proc_macro_attribute]
 pub fn component(_metadata: TokenStream, input: TokenStream) -> TokenStream {
     let state: Item = syn::parse(input).unwrap();
-    let component = component::quote(state);
-    let expanded = quote! {
-        #component
-    };
+    let expanded = component::quote(state);
     expanded.into()
 }
 
 #[proc_macro_attribute]
 pub fn render(_metadata: TokenStream, input: TokenStream) -> TokenStream {
     let item: Item = syn::parse(input).unwrap();
-    let new_impl = render::quote(item);
-    let expanded = quote! {
-        #new_impl
-    };
+    let expanded = render::quote(item);
     expanded.into()
 }
 
@@ -47,9 +41,6 @@ pub fn derive_lifecycle(input: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn events(_metadata: TokenStream, input: TokenStream) -> TokenStream {
     let state: Item = syn::parse(input).unwrap();
-    let event = events::quote(state);
-    let expanded = quote! {
-        #event
-    };
+    let expanded = events::quote(state);
     expanded.into()
 }
