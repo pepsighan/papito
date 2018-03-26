@@ -35,29 +35,58 @@ pub fn component(_metadata: TokenStream, input: TokenStream) -> TokenStream {
 
 fn quote_struct_item(item: &ItemStruct) -> Tokens {
     let state_ident = &item.ident;
-    let comp_ident = Ident::from(format!("{}Component", item.ident));
-    let assert_mod_ident = Ident::from(format!("{}Assertions", item.ident).to_snake_case());
+    let comp_ident = &Ident::from(format!("{}Component", item.ident));
     let state_fields = &item.fields;
     let vis = &item.vis;
     let augmented_state = quote_augmented_state(item.attrs.clone(), vis, state_ident, state_fields);
-    let assert_lifecycle = quote! {
-        mod #assert_mod_ident {
-            struct _AssertLifecycle where #state_ident: ::papito_dom::Lifecycle;
+    let assert_lifecycle = assert_lifecycle(state_ident);
+    let new_struct = quote_new_struct(vis, comp_ident, state_ident);
+    let component_of = impl_component_of(comp_ident, state_ident);
+    let component_impl = quote_component_impl(comp_ident, state_ident, state_fields);
+    let lifecycle_impl = impl_lifecycle_for_comp(comp_ident);
+    quote! {
+        #augmented_state
+
+        #assert_lifecycle
+
+        #new_struct
+
+        #component_of
+
+        #component_impl
+
+        #lifecycle_impl
+    }
+}
+
+fn impl_component_of(comp: &Ident, state: &Ident) -> Tokens {
+    quote! {
+        impl ::papito_dom::ComponentOf for #state {
+            type Comp = #comp;
         }
-    };
-    let new_struct = quote! {
+    }
+}
+
+fn quote_new_struct(vis: &Visibility, comp_ident: &Ident, state_ident: &Ident) -> Tokens {
+    quote! {
         #vis struct #comp_ident {
             inner: ::std::rc::Rc<::std::cell::RefCell<#state_ident>>
         }
-    };
-    let component_of = quote! {
-        impl ::papito_dom::ComponentOf for #state_ident {
-            type Comp = #comp_ident;
+    }
+}
+
+fn assert_lifecycle(state: &Ident) -> Tokens {
+    let mod_ = Ident::from(format!("{}Assertions", state).to_snake_case());
+    quote! {
+        mod #mod_ {
+            struct _AssertLifecycle where #state: ::papito_dom::Lifecycle;
         }
-    };
-    let component_impl = quote_component_impl(&comp_ident, &state_ident, state_fields);
-    let lifecycle_impl = quote! {
-        impl ::papito::prelude::Lifecycle for #comp_ident {
+    }
+}
+
+fn impl_lifecycle_for_comp(comp: &Ident) -> Tokens {
+    quote! {
+        impl ::papito::prelude::Lifecycle for #comp {
             fn created(&mut self) {
                 self.inner.borrow_mut().created();
             }
@@ -74,19 +103,6 @@ fn quote_struct_item(item: &ItemStruct) -> Tokens {
                 self.inner.borrow_mut().destroyed();
             }
         }
-    };
-    quote! {
-        #augmented_state
-
-        #assert_lifecycle
-
-        #new_struct
-
-        #component_of
-
-        #component_impl
-
-        #lifecycle_impl
     }
 }
 
