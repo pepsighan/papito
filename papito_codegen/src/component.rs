@@ -27,7 +27,7 @@ fn quote_struct_item(item: &ItemStruct) -> Tokens {
     let component_of = impl_component_of(comp_ident, state_ident);
     let component_impl = quote_component_impl(comp_ident, state_ident, state_fields);
     let lifecycle_impl = impl_lifecycle_for_comp(comp_ident);
-    let state_setters = impl_state_setters(state_ident, state_fields);
+    let state_setters = impl_state_setters_and_notifier(state_ident, state_fields);
     quote! {
         #augmented_state
 
@@ -178,7 +178,7 @@ fn quote_unit_field(comp_ident: &Ident, state_ident: &Ident) -> Tokens {
     }
 }
 
-fn impl_state_setters(state: &Ident, fields: &Fields) -> Tokens {
+fn impl_state_setters_and_notifier(state: &Ident, fields: &Fields) -> Tokens {
     match *fields {
         Fields::Named(ref named_fields) => {
             let named = &named_fields.named;
