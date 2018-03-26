@@ -23,22 +23,25 @@ fn quote_struct_item(item: &ItemStruct) -> Tokens {
     let vis = &item.vis;
     let augmented_state = quote_augmented_state(item.attrs.clone(), vis, state_ident, state_fields);
     let assert_lifecycle = assert_lifecycle(state_ident);
-    let new_struct = quote_new_struct(vis, comp_ident, state_ident);
+    let comp_struct = quote_new_struct(vis, comp_ident, state_ident);
     let component_of = impl_component_of(comp_ident, state_ident);
     let component_impl = quote_component_impl(comp_ident, state_ident, state_fields);
     let lifecycle_impl = impl_lifecycle_for_comp(comp_ident);
+    let state_setters = impl_state_setters(state_ident, state_fields);
     quote! {
         #augmented_state
 
         #assert_lifecycle
 
-        #new_struct
+        #comp_struct
 
         #component_of
 
         #component_impl
 
         #lifecycle_impl
+
+        #state_setters
     }
 }
 
@@ -175,6 +178,39 @@ fn quote_unit_field(comp_ident: &Ident, state_ident: &Ident) -> Tokens {
             #comp_ident {
                 inner: ::std::rc::Rc::new(::std::cell::RefCell::new(state))
             }
+        }
+    }
+}
+
+fn impl_state_setters(state: &Ident, fields: &Fields) -> Tokens {
+    match *fields {
+        Fields::Named(ref named_fields) => {
+            let named = &named_fields.named;
+            let mut setters = vec![];
+            for field in named.iter() {
+                let ident = field.ident.as_ref().unwrap();
+                let fn_name = Ident::from(format!("set_{}", ident));
+                let ty = &field.ty;
+                setters.push(
+                    quote! {
+                        fn #fn_name(&mut self, value: #ty) {
+                            self.#ident = value;
+                            self.notifier();
+                        }
+                    }
+                );
+            }
+            quote! {
+                impl #state {
+                    #(#setters)*
+                }
+            }
+        },
+        Fields::Unnamed(_) => {
+            panic!("Tuple structs are not supported as components");
+        },
+        Fields::Unit => {
+            quote!()
         }
     }
 }
