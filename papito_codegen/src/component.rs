@@ -189,6 +189,7 @@ fn impl_state_setters_and_notifier(state: &Ident, fields: &Fields) -> Tokens {
                 let ty = &field.ty;
                 setters.push(
                     quote! {
+                        #[allow(dead_code)]
                         fn #fn_name(&mut self, value: #ty) {
                             self.#ident = value;
                             self.notifier();
@@ -200,6 +201,7 @@ fn impl_state_setters_and_notifier(state: &Ident, fields: &Fields) -> Tokens {
                 impl #state {
                     #(#setters)*
 
+                    #[allow(dead_code)]
                     fn notifier(&self) {
                         let notifier = &self.notifier;
                         notifier();
