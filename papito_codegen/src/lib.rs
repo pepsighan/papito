@@ -48,9 +48,30 @@ fn quote_struct_item(item: &ItemStruct) -> Tokens {
             type Comp = #state_ident;
         }
     };
+    let lifecycle_impl = quote! {
+        impl ::papito::prelude::Lifecycle for #comp_ident {
+            fn created(&mut self) {
+                self.inner.borrow_mut().created();
+            }
+
+            fn mounted(&mut self) {
+                self.inner.borrow_mut().mounted();
+            }
+
+            fn updated(&mut self) {
+                self.inner.borrow_mut().updated();
+            }
+
+            fn destroyed(&mut self) {
+                self.inner.borrow_mut().destroyed();
+            }
+        }
+    };
     quote! {
         #new_struct
 
         #component_of
+
+        #lifecycle_impl
     }
 }
