@@ -111,9 +111,7 @@ fn quote_augmented_state(attrs: Vec<Attribute>, vis: &Visibility, state_ident: &
         Fields::Unit => {
             quote! {
                 #(#attrs)*
-                #vis struct #state_ident {
-                    #notifier: Box<Fn()>
-                }
+                #vis struct #state_ident;
             }
         }
     }
@@ -171,10 +169,8 @@ fn quote_fields_named(comp_ident: &Ident, state_ident: &Ident, fields: &FieldsNa
 
 fn quote_unit_field(comp_ident: &Ident, state_ident: &Ident) -> Tokens {
     quote! {
-        fn create(props: Self::Props, notifier: Box<Fn()>) -> Self {
-            let state = #state_ident {
-                notifier
-            };
+        fn create(props: Self::Props, _: Box<Fn()>) -> Self {
+            let state = #state_ident;
             #comp_ident {
                 inner: ::std::rc::Rc::new(::std::cell::RefCell::new(state))
             }
