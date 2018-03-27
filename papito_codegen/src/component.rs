@@ -22,10 +22,10 @@ fn quote_struct_item(item: &ItemStruct) -> Tokens {
     let comp_ident = &Ident::from(format!("{}Component", item.ident));
     let state_fields = &item.fields;
     let vis = &item.vis;
-    let props_struct = impl_props_struct(prop_ident, state_fields);
-    let augmented_state = quote_augmented_state(item.attrs.clone(), vis, state_ident, state_fields);
+    let props_struct = generate_props_struct(prop_ident, state_fields);
+    let augmented_state = augment_state_struct(item.attrs.clone(), vis, state_ident, state_fields);
     let assert_lifecycle = assert_lifecycle(state_ident);
-    let comp_struct = quote_new_struct(vis, comp_ident, state_ident, state_fields);
+    let comp_struct = generate_component_struct(vis, comp_ident, state_ident, prop_ident);
     let component_of = impl_component_of(comp_ident, state_ident);
     let component_impl = quote_component_impl(comp_ident, state_ident, state_fields);
     let lifecycle_impl = impl_lifecycle_for_comp(comp_ident);
@@ -57,20 +57,11 @@ fn impl_component_of(comp: &Ident, state: &Ident) -> Tokens {
     }
 }
 
-fn quote_new_struct(vis: &Visibility, comp_ident: &Ident, state_ident: &Ident, fields: &Fields) -> Tokens {
-    let props_type = get_props_type_from_fields(fields);
-    if let Some(props_type) = props_type {
-        quote! {
-            #vis struct #comp_ident {
-                inner: ::std::rc::Rc<::std::cell::RefCell<#state_ident>>,
-                props: ::std::rc::Rc<#props_type>
-            }
-        }
-    } else {
-        quote! {
-            #vis struct #comp_ident {
-                inner: ::std::rc::Rc<::std::cell::RefCell<#state_ident>>
-            }
+fn generate_component_struct(vis: &Visibility, comp_ident: &Ident, state_ident: &Ident, props_ident: &Ident) -> Tokens {
+    quote! {
+        #vis struct #comp_ident {
+            inner: ::std::rc::Rc<::std::cell::RefCell<#state_ident>>,
+            props: ::std::rc::Rc<#props_ident>
         }
     }
 }
@@ -106,11 +97,11 @@ fn impl_lifecycle_for_comp(comp: &Ident) -> Tokens {
     }
 }
 
-fn quote_augmented_state(attrs: Vec<Attribute>, vis: &Visibility, state_ident: &Ident, fields: &Fields) -> Tokens {
+fn augment_state_struct(attrs: Vec<Attribute>, vis: &Visibility, state_ident: &Ident, fields: &Fields) -> Tokens {
     let notifier = Ident::from("notifier".to_string());
     match *fields {
         Fields::Named(ref fields_named) => {
-            let named = modify_props_type(fields_named);
+            let named = sanitize_fields(fields_named);
             quote! {
                 #(#attrs)*
                 #vis struct #state_ident {
@@ -131,20 +122,13 @@ fn quote_augmented_state(attrs: Vec<Attribute>, vis: &Visibility, state_ident: &
     }
 }
 
-fn modify_props_type(fields_named: &FieldsNamed) -> Vec<Tokens> {
-    let prop_ident = &Ident::from("props".to_string());
+fn sanitize_fields(fields_named: &FieldsNamed) -> Vec<Tokens> {
     fields_named.named.iter()
         .map(|it| {
             let ident = it.ident.as_ref().unwrap();
             let ty = &it.ty;
-            if ident == prop_ident {
-                quote! {
-                    props: ::std::rc::Rc<#ty>
-                }
-            } else {
-                quote! {
-                    #ident: #ty
-                }
+            quote! {
+                #ident: #ty
             }
         }).collect::<Vec<Tokens>>()
 }
@@ -338,18 +322,24 @@ fn has_props_field(fields: &FieldsNamed) -> bool {
     get_props_type(fields).is_some()
 }
 
-fn impl_props_struct(ident: &Ident, fields: &Fields) -> Tokens {
+fn generate_props_struct(ident: &Ident, fields: &Fields) -> Tokens {
     let props = get_props_from_fields(fields);
     let field_tokens = props.iter().map(|it| {
         let ident = it.ident;
-        let ty = it.ty;
+        let ty = &it.ty;
         quote! {
             #ident: #ty
         }
-    });
-    quote! {
-        struct #ident {
-            #(#field_tokens),*
+    }).collect::<Vec<_>>();
+    if field_tokens.is_empty() {
+        quote! {
+            struct #ident;
+        }
+    } else {
+        quote! {
+            struct #ident {
+                #(#field_tokens),*
+            }
         }
     }
 }
@@ -365,10 +355,10 @@ fn get_props_from_fields(fields: &Fields) -> Vec<Field> {
                 }
             }
             list
-        },
+        }
         Fields::Unnamed(_) => {
             panic!("Tuple structs are not supported as components");
-        },
+        }
         Fields::Unit => {
             Vec::new()
         }
