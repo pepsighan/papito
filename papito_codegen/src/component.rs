@@ -23,7 +23,7 @@ fn quote_struct_item(item: &ItemStruct) -> Tokens {
     let vis = &item.vis;
     let augmented_state = quote_augmented_state(item.attrs.clone(), vis, state_ident, state_fields);
     let assert_lifecycle = assert_lifecycle(state_ident);
-    let comp_struct = quote_new_struct(vis, comp_ident, state_ident);
+    let comp_struct = quote_new_struct(vis, comp_ident, state_ident, state_fields);
     let component_of = impl_component_of(comp_ident, state_ident);
     let component_impl = quote_component_impl(comp_ident, state_ident, state_fields);
     let lifecycle_impl = impl_lifecycle_for_comp(comp_ident);
@@ -53,10 +53,20 @@ fn impl_component_of(comp: &Ident, state: &Ident) -> Tokens {
     }
 }
 
-fn quote_new_struct(vis: &Visibility, comp_ident: &Ident, state_ident: &Ident) -> Tokens {
-    quote! {
-        #vis struct #comp_ident {
-            inner: ::std::rc::Rc<::std::cell::RefCell<#state_ident>>
+fn quote_new_struct(vis: &Visibility, comp_ident: &Ident, state_ident: &Ident, fields: &Fields) -> Tokens {
+    let props_type = get_props_type_from_fields(fields);
+    if let Some(props_type) = props_type {
+        quote! {
+            #vis struct #comp_ident {
+                inner: ::std::rc::Rc<::std::cell::RefCell<#state_ident>>,
+                props: ::std::rc::Rc<#props_type>
+            }
+        }
+    } else {
+        quote! {
+            #vis struct #comp_ident {
+                inner: ::std::rc::Rc<::std::cell::RefCell<#state_ident>>
+            }
         }
     }
 }
@@ -118,20 +128,20 @@ fn quote_augmented_state(attrs: Vec<Attribute>, vis: &Visibility, state_ident: &
 }
 
 fn quote_component_impl(comp_ident: &Ident, state_ident: &Ident, fields: &Fields) -> Tokens {
-    let create_fn = match *fields {
-        Fields::Named(ref fields_named) => {
-            quote_fields_named(comp_ident, state_ident, fields_named)
+    let create_fn = impl_create_fn(comp_ident, state_ident, fields);
+    let props_type = get_props_type_from_fields(fields);
+    let props_type = if let Some(prop_type) = props_type {
+        quote! {
+            #prop_type
         }
-        Fields::Unnamed(_) => {
-            panic!("Tuple structs are not supported as components");
-        }
-        Fields::Unit => {
-            quote_unit_field(comp_ident, state_ident)
+    } else {
+        quote! {
+            ()
         }
     };
     quote! {
         impl ::papito_dom::Component for #comp_ident {
-            type Props = ();
+            type Props = #props_type;
 
             #create_fn
 
@@ -142,6 +152,20 @@ fn quote_component_impl(comp_ident: &Ident, state_ident: &Ident, fields: &Fields
             fn props(&self) -> &Self::Props {
                 unimplemented!();
             }
+        }
+    }
+}
+
+fn impl_create_fn(comp_ident: &Ident, state_ident: &Ident, fields: &Fields) -> Tokens {
+    match *fields {
+        Fields::Named(ref fields_named) => {
+            quote_fields_named(comp_ident, state_ident, fields_named)
+        }
+        Fields::Unnamed(_) => {
+            panic!("Tuple structs are not supported as components");
+        }
+        Fields::Unit => {
+            quote_unit_field(comp_ident, state_ident)
         }
     }
 }
@@ -157,34 +181,31 @@ fn quote_fields_named(comp_ident: &Ident, state_ident: &Ident, fields: &FieldsNa
         }
     }
     let has_props = has_props_field(fields);
-    let prop_arg = if has_props {
+    if has_props {
         quote! {
-            props: Self::Props
+            fn create(props: Self::Props, notifier: Box<Fn()>) -> Self {
+                let props = Rc::new(props);
+                let state = #state_ident {
+                    #(#field_inits),*,
+                    props,
+                    notifier
+                };
+                #comp_ident {
+                    inner: ::std::rc::Rc::new(::std::cell::RefCell::new(state)),
+                    props
+                }
+            }
         }
     } else {
         quote! {
-            _: Self::Props
-        }
-    };
-    let fields = if has_props {
-        quote! {
-            #(#field_inits),*,
-            props,
-            notifier
-        }
-    } else {
-        quote! {
-            #(#field_inits),*,
-            notifier
-        }
-    };
-    quote! {
-        fn create(#prop_arg, notifier: Box<Fn()>) -> Self {
-            let state = #state_ident {
-                #fields
-            };
-            #comp_ident {
-                inner: ::std::rc::Rc::new(::std::cell::RefCell::new(state))
+            fn create(_: Self::Props, notifier: Box<Fn()>) -> Self {
+                let state = #state_ident {
+                    #(#field_inits),*,
+                    notifier
+                };
+                #comp_ident {
+                    inner: ::std::rc::Rc::new(::std::cell::RefCell::new(state))
+                }
             }
         }
     }
@@ -238,6 +259,15 @@ fn impl_state_setters_and_notifier(state: &Ident, fields: &Fields) -> Tokens {
         Fields::Unit => {
             quote!()
         }
+    }
+}
+
+fn get_props_type_from_fields(fields: &Fields) -> Option<Type> {
+    match *fields {
+        Fields::Named(ref named_fields) => {
+            get_props_type(named_fields)
+        }
+        _ => None
     }
 }
 
