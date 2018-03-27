@@ -24,7 +24,7 @@ pub struct VComponent {
     #[cfg(not(target_arch = "wasm32"))]
     initializer: Box<Fn(*mut Props) -> Box<Lifecycle>>,
     #[cfg(target_arch = "wasm32")]
-    props_setter: Box<Fn(&mut Box<Lifecycle>, Rc<RefCell<bool>>, *mut Props)>,
+    props_setter: Box<Fn(&mut Box<Lifecycle>, *mut Props)>,
     rendered: Option<Box<VNode>>,
     state_changed: Rc<RefCell<bool>>,
 }
@@ -52,7 +52,7 @@ impl VComponent {
                 };
                 Box::new(T::create(props, notifier))
             }),
-            props_setter: Box::new(|instance, state_changed, props| {
+            props_setter: Box::new(|instance, props| {
                 let props: T::Props = unsafe {
                     *Box::from_raw(mem::transmute(props))
                 };
@@ -64,7 +64,6 @@ impl VComponent {
                 };
                 if is_diff {
                     T::update(instance, props);
-                    *state_changed.borrow_mut() = true;
                 }
             }),
             rendered: None,
@@ -121,7 +120,7 @@ impl VComponent {
     unsafe fn set_props(&mut self, props: *mut Props) {
         debug_assert!(self.instance.is_some());
         let props_setter = &self.props_setter;
-        props_setter(self.instance.as_mut().unwrap(), self.state_changed.clone(), props);
+        props_setter(self.instance.as_mut().unwrap(), props);
     }
 
     #[cfg(target_arch = "wasm32")]
