@@ -37,8 +37,9 @@ pub mod prelude {
     pub use traits::RenderToString;
 }
 
-pub fn comp<T: Component + 'static>(props: T::Props) -> VComponent {
-    VComponent::new::<T>(props)
+pub fn comp<P: ComponentOf>(props: <<P as ComponentOf>::Comp as Component>::Props) -> VComponent where
+    P::Comp: Component + 'static {
+    VComponent::new::<P::Comp>(props)
 }
 
 pub fn txt<T: Into<VText>>(txt: T) -> VText {
@@ -69,15 +70,10 @@ pub fn ev<E, T, F>(listener: E) -> Box<events::DOMEvent> where
 macro_rules! h {
     // Creates a component vnode with map as props where props is a struct
     (comp $t:ty, { $( $k:ident => $v:expr ),* } $(,)*) => {{
-        type T = <$t as Component>::Props;
+        type T = <<$t as ComponentOf>::Comp as Component>::Props;
         $crate::h($crate::comp::<$t>(T {
             $( $k: $v ),*
         }))
-    }};
-    // Creates a component vnode with tuple as props where props is a struct
-    (comp $t:ty, ( $( $v:expr ),* ), $(,)*) => {{
-        type T = <$t as Component>::Props;
-        $crate::h($crate::comp::<$t>(T ( $( $v ),* )))
     }};
     // Creates a component vnode with no props
     (comp $t:ty) => {
