@@ -1,6 +1,6 @@
 use heck::SnakeCase;
 use quote::Tokens;
-use syn::{Attribute, Fields, FieldsNamed, Ident, Item, ItemStruct, Visibility};
+use syn::{Attribute, Fields, FieldsNamed, Ident, Item, ItemStruct, Visibility, Type};
 
 pub fn quote(state: Item) -> Tokens {
     match state {
@@ -150,15 +150,38 @@ fn quote_fields_named(comp_ident: &Ident, state_ident: &Ident, fields: &FieldsNa
     let mut field_inits = vec![];
     for field in fields.named.iter() {
         let ident = &field.ident.unwrap();
-        field_inits.push(quote! {
-            #ident: Default::default()
-        });
+        if ident != &Ident::from("props".to_string()) {
+            field_inits.push(quote! {
+                #ident: Default::default()
+            });
+        }
     }
+    let has_props = has_props_field(fields);
+    let prop_arg = if has_props {
+        quote! {
+            props: Self::Props
+        }
+    } else {
+        quote! {
+            _: Self::Props
+        }
+    };
+    let fields = if has_props {
+        quote! {
+            #(#field_inits),*,
+            props,
+            notifier
+        }
+    } else {
+        quote! {
+            #(#field_inits),*,
+            notifier
+        }
+    };
     quote! {
-        fn create(props: Self::Props, notifier: Box<Fn()>) -> Self {
+        fn create(#prop_arg, notifier: Box<Fn()>) -> Self {
             let state = #state_ident {
-                #(#field_inits),*,
-                notifier
+                #fields
             };
             #comp_ident {
                 inner: ::std::rc::Rc::new(::std::cell::RefCell::new(state))
@@ -208,12 +231,26 @@ fn impl_state_setters_and_notifier(state: &Ident, fields: &Fields) -> Tokens {
                     }
                 }
             }
-        },
+        }
         Fields::Unnamed(_) => {
             panic!("Tuple structs are not supported as components");
-        },
+        }
         Fields::Unit => {
             quote!()
         }
     }
+}
+
+fn get_props_type(fields: &FieldsNamed) -> Option<Type> {
+    let props_ident = Ident::from("props".to_string());
+    for field in fields.named.iter() {
+        if field.ident.as_ref().unwrap() == &props_ident {
+            return Some(field.ty.clone());
+        }
+    }
+    None
+}
+
+fn has_props_field(fields: &FieldsNamed) -> bool {
+    get_props_type(fields).is_some()
 }
