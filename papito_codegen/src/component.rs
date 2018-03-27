@@ -147,6 +147,7 @@ fn modify_props_type(fields_named: &FieldsNamed) -> Vec<Tokens> {
 
 fn quote_component_impl(comp_ident: &Ident, state_ident: &Ident, fields: &Fields) -> Tokens {
     let create_fn = impl_create_fn(comp_ident, state_ident, fields);
+    let update_fn = impl_update_fn(fields);
     let props_type = get_props_type_from_fields(fields);
     let props_type = if let Some(prop_type) = props_type {
         quote! {
@@ -163,9 +164,7 @@ fn quote_component_impl(comp_ident: &Ident, state_ident: &Ident, fields: &Fields
 
             #create_fn
 
-            fn update(&mut self, props: Self::Props) {
-                unimplemented!();
-            }
+            #update_fn
 
             fn props(&self) -> &Self::Props {
                 unimplemented!();
@@ -202,7 +201,7 @@ fn quote_fields_named(comp_ident: &Ident, state_ident: &Ident, fields: &FieldsNa
     if has_props {
         quote! {
             fn create(props: Self::Props, notifier: Box<Fn()>) -> Self {
-                let props = Rc::new(props);
+                let props = ::std::rc::Rc::new(props);
                 let state = #state_ident {
                     #(#field_inits),*,
                     props,
@@ -236,6 +235,22 @@ fn quote_unit_field(comp_ident: &Ident, state_ident: &Ident) -> Tokens {
             #comp_ident {
                 inner: ::std::rc::Rc::new(::std::cell::RefCell::new(state))
             }
+        }
+    }
+}
+
+fn impl_update_fn(fields: &Fields) -> Tokens {
+    if get_props_type_from_fields(fields).is_some() {
+        quote! {
+            fn update(&mut self, props: Self::Props) {
+                let props = ::std::rc::Rc::new(props);
+                self.inner.borrow_mut().props = props.clone();
+                self.props = props;
+            }
+        }
+    } else {
+        quote! {
+            fn update(&mut self, _: Self::Props) {}
         }
     }
 }
