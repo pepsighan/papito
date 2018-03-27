@@ -229,7 +229,7 @@ fn quote_fields_named(comp_ident: &Ident, state_ident: &Ident, fields: &FieldsNa
 
 fn quote_unit_field(comp_ident: &Ident, state_ident: &Ident) -> Tokens {
     quote! {
-        fn create(props: Self::Props, _: Box<Fn()>) -> Self {
+        fn create(_: Self::Props, _: Box<Fn()>) -> Self {
             let state = #state_ident;
             #comp_ident {
                 inner: ::std::rc::Rc::new(::std::cell::RefCell::new(state))
@@ -265,7 +265,7 @@ fn impl_props_fn(fields: &Fields) -> Tokens {
     } else {
         quote! {
             fn props(&self) -> &Self::Props {
-                &();
+                &()
             }
         }
     }
