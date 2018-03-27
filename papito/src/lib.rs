@@ -30,7 +30,7 @@ impl App {
         };
 
         App {
-            vdom: h(comp::<C::Comp>(())),
+            vdom: h(comp::<C>(())),
             #[cfg(target_arch = "wasm32")]
             render_req: RenderRequest::new(|| {
                 js! { @(no_return)
