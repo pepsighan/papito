@@ -148,6 +148,7 @@ fn modify_props_type(fields_named: &FieldsNamed) -> Vec<Tokens> {
 fn quote_component_impl(comp_ident: &Ident, state_ident: &Ident, fields: &Fields) -> Tokens {
     let create_fn = impl_create_fn(comp_ident, state_ident, fields);
     let update_fn = impl_update_fn(fields);
+    let props_fn = impl_props_fn(fields);
     let props_type = get_props_type_from_fields(fields);
     let props_type = if let Some(prop_type) = props_type {
         quote! {
@@ -166,9 +167,7 @@ fn quote_component_impl(comp_ident: &Ident, state_ident: &Ident, fields: &Fields
 
             #update_fn
 
-            fn props(&self) -> &Self::Props {
-                unimplemented!();
-            }
+            #props_fn
         }
     }
 }
@@ -251,6 +250,22 @@ fn impl_update_fn(fields: &Fields) -> Tokens {
     } else {
         quote! {
             fn update(&mut self, _: Self::Props) {}
+        }
+    }
+}
+
+fn impl_props_fn(fields: &Fields) -> Tokens {
+    if get_props_type_from_fields(fields).is_some() {
+        quote! {
+            fn props(&self) -> &Self::Props {
+                &*self.props
+            }
+        }
+    } else {
+        quote! {
+            fn props(&self) -> &Self::Props {
+                &();
+            }
         }
     }
 }
