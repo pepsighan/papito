@@ -158,6 +158,9 @@ mod test {
     use stdweb::web::event::InputEvent;
     use traits::{Component, Lifecycle, Render, RenderToString};
     use vcomponent::VComponent;
+    use std::rc::Rc;
+    use std::cell::RefCell;
+    use ComponentOf;
 
     #[test]
     fn should_create_text_vnode() {
@@ -369,11 +372,28 @@ mod test {
     fn should_create_a_component() {
         struct Button;
 
-        impl Component for Button {
+        impl Lifecycle for Button {}
+        impl Render for Button {
+            fn render(&self) -> VNode {
+                unimplemented!();
+            }
+        }
+
+        impl ComponentOf for Button {
+            type Comp = ButtonComponent;
+        }
+
+        struct ButtonComponent {
+            inner: Rc<RefCell<Button>>
+        }
+
+        impl Component for ButtonComponent {
             type Props = ();
 
             fn create(_: (), _: Box<Fn()>) -> Self {
-                Button
+                ButtonComponent {
+                    inner: Rc::new(RefCell::new(Button))
+                }
             }
             fn update(&mut self, props: Self::Props) {}
             fn props(&self) -> &Self::Props {
@@ -381,8 +401,8 @@ mod test {
             }
         }
 
-        impl Lifecycle for Button {}
-        impl Render for Button {
+        impl Lifecycle for ButtonComponent {}
+        impl Render for ButtonComponent {
             fn render(&self) -> VNode {
                 h!("button", h!("Click"))
             }
@@ -390,7 +410,7 @@ mod test {
 
         let node = h!(comp Button);
         assert_eq!(
-            VNode::Component(VComponent::new::<Button>(())),
+            VNode::Component(VComponent::new::<ButtonComponent>(())),
             node
         );
     }
@@ -462,11 +482,28 @@ mod test {
     fn should_print_html_for_component() {
         struct Button;
 
-        impl Component for Button {
+        impl Lifecycle for Button {}
+        impl Render for Button {
+            fn render(&self) -> VNode {
+                unimplemented!();
+            }
+        }
+
+        impl ComponentOf for Button {
+            type Comp = ButtonComponent;
+        }
+
+        struct ButtonComponent {
+            inner: Rc<RefCell<Button>>
+        }
+
+        impl Component for ButtonComponent {
             type Props = ();
 
             fn create(_: (), _: Box<Fn()>) -> Self {
-                Button
+                ButtonComponent {
+                    inner: Rc::new(RefCell::new(Button))
+                }
             }
             fn update(&mut self, props: Self::Props) {}
             fn props(&self) -> &Self::Props {
@@ -474,8 +511,8 @@ mod test {
             }
         }
 
-        impl Lifecycle for Button {}
-        impl Render for Button {
+        impl Lifecycle for ButtonComponent {}
+        impl Render for ButtonComponent {
             fn render(&self) -> VNode {
                 h!("button", h!("Click"))
             }
@@ -489,11 +526,28 @@ mod test {
     fn should_print_html_for_nested_components() {
         struct Button;
 
-        impl Component for Button {
+        impl Lifecycle for Button {}
+        impl Render for Button {
+            fn render(&self) -> VNode {
+                unimplemented!();
+            }
+        }
+
+        impl ComponentOf for Button {
+            type Comp = ButtonComponent;
+        }
+
+        struct ButtonComponent {
+            inner: Rc<RefCell<Button>>
+        }
+
+        impl Component for ButtonComponent {
             type Props = ();
 
             fn create(_: (), _: Box<Fn()>) -> Self {
-                Button
+                ButtonComponent {
+                    inner: Rc::new(RefCell::new(Button))
+                }
             }
             fn update(&mut self, props: Self::Props) {}
             fn props(&self) -> &Self::Props {
@@ -501,8 +555,8 @@ mod test {
             }
         }
 
-        impl Lifecycle for Button {}
-        impl Render for Button {
+        impl Lifecycle for ButtonComponent {}
+        impl Render for ButtonComponent {
             fn render(&self) -> VNode {
                 h!("button", h!("Click"))
             }
@@ -510,11 +564,27 @@ mod test {
 
         struct Div;
 
-        impl Component for Div {
+        impl Lifecycle for Div {}
+        impl Render for Div {
+            fn render(&self) -> VNode {
+                unimplemented!();
+            }
+        }
+        impl ComponentOf for Div {
+            type Comp = DivComponent;
+        }
+
+        struct DivComponent {
+            inner: Rc<RefCell<Div>>
+        }
+
+        impl Component for DivComponent {
             type Props = ();
 
             fn create(_:(), _: Box<Fn()>) -> Self {
-                Div
+                DivComponent {
+                    inner: Rc::new(RefCell::new(Div))
+                }
             }
             fn update(&mut self, props: Self::Props) {}
             fn props(&self) -> &Self::Props {
@@ -522,8 +592,8 @@ mod test {
             }
         }
 
-        impl Lifecycle for Div {}
-        impl Render for Div {
+        impl Lifecycle for DivComponent {}
+        impl Render for DivComponent {
             fn render(&self) -> VNode {
                 h!("div", h!(comp Button))
             }
