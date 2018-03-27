@@ -106,7 +106,7 @@ fn quote_augmented_state(attrs: Vec<Attribute>, vis: &Visibility, state_ident: &
     let notifier = Ident::from("notifier".to_string());
     match *fields {
         Fields::Named(ref fields_named) => {
-            let named = &fields_named.named;
+            let named = modify_props_type(fields_named);
             quote! {
                 #(#attrs)*
                 #vis struct #state_ident {
@@ -125,6 +125,24 @@ fn quote_augmented_state(attrs: Vec<Attribute>, vis: &Visibility, state_ident: &
             }
         }
     }
+}
+
+fn modify_props_type(fields_named: &FieldsNamed) -> Vec<Tokens> {
+    let prop_ident = &Ident::from("props".to_string());
+    fields_named.named.iter()
+        .map(|it| {
+            let ident = it.ident.as_ref().unwrap();
+            let ty = &it.ty;
+            if ident == prop_ident {
+                quote! {
+                    props: ::std::rc::Rc<#ty>
+                }
+            } else {
+                quote! {
+                    #ident: #ty
+                }
+            }
+        }).collect::<Vec<Tokens>>()
 }
 
 fn quote_component_impl(comp_ident: &Ident, state_ident: &Ident, fields: &Fields) -> Tokens {
