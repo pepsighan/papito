@@ -12,7 +12,7 @@ use papito_dom::{DOMRender, RenderRequest};
 use std::ops::Deref;
 
 pub mod prelude {
-    pub use papito_dom::{Component, Lifecycle, Render};
+    pub use papito_dom::{Lifecycle, Render};
 }
 
 pub struct App {
