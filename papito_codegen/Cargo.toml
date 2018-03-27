@@ -11,3 +11,8 @@ syn = { version = "0.12.14", features = ["full", "extra-traits"] }
 quote = "0.4.2"
 proc-macro2 = { version = "0.2.3" }
 heck = "0.3.0"
+
+[dev-dependencies]
+papito = { path = "../papito" }
+papito_dom = { path = "../papito_dom" }
+stdweb = "0.4.2"
