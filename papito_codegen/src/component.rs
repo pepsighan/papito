@@ -245,6 +245,7 @@ fn impl_update_fn(fields: &Fields) -> Tokens {
                 let props = ::std::rc::Rc::new(props);
                 self.inner.borrow_mut().props = props.clone();
                 self.props = props;
+                self.inner.borrow().notify();
             }
         }
     } else {
