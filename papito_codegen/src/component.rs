@@ -1,6 +1,6 @@
 use heck::SnakeCase;
 use quote::Tokens;
-use syn::{Attribute, Fields, FieldsNamed, Ident, Item, ItemStruct, Visibility, Type};
+use syn::{Attribute, Field, Fields, FieldsNamed, Ident, Item, ItemStruct, Visibility, Type, Path};
 
 pub fn quote(state: Item) -> Tokens {
     match state {
@@ -18,9 +18,11 @@ pub fn quote(state: Item) -> Tokens {
 
 fn quote_struct_item(item: &ItemStruct) -> Tokens {
     let state_ident = &item.ident;
+    let prop_ident = &Ident::from(format!("{}Prop", item.ident));
     let comp_ident = &Ident::from(format!("{}Component", item.ident));
     let state_fields = &item.fields;
     let vis = &item.vis;
+    let props_struct = impl_props_struct(prop_ident, state_fields);
     let augmented_state = quote_augmented_state(item.attrs.clone(), vis, state_ident, state_fields);
     let assert_lifecycle = assert_lifecycle(state_ident);
     let comp_struct = quote_new_struct(vis, comp_ident, state_ident, state_fields);
@@ -42,6 +44,8 @@ fn quote_struct_item(item: &ItemStruct) -> Tokens {
         #lifecycle_impl
 
         #state_setters
+
+        #props_struct
     }
 }
 
@@ -332,4 +336,41 @@ fn get_props_type(fields: &FieldsNamed) -> Option<Type> {
 
 fn has_props_field(fields: &FieldsNamed) -> bool {
     get_props_type(fields).is_some()
+}
+
+fn impl_props_struct(ident: &Ident, fields: &Fields) -> Tokens {
+    let props = get_props_from_fields(fields);
+    let field_tokens = props.iter().map(|it| {
+        let ident = it.ident;
+        let ty = it.ty;
+        quote! {
+            #ident: #ty
+        }
+    });
+    quote! {
+        struct #ident {
+            #(#field_tokens),*
+        }
+    }
+}
+
+fn get_props_from_fields(fields: &Fields) -> Vec<Field> {
+    let prop_path = Path::from(Ident::from("prop".to_string()));
+    match *fields {
+        Fields::Named(ref named_fields) => {
+            let mut list = vec![];
+            for field in named_fields.named.iter() {
+                if field.attrs.iter().any(|it| it.path == prop_path) {
+                    list.push(field.clone());
+                }
+            }
+            list
+        },
+        Fields::Unnamed(_) => {
+            panic!("Tuple structs are not supported as components");
+        },
+        Fields::Unit => {
+            Vec::new()
+        }
+    }
 }
