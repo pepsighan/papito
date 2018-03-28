@@ -120,11 +120,6 @@ impl VComponent {
         props_setter(self.instance.as_mut().unwrap(), props);
     }
 
-    #[cfg(target_arch = "wasm32")]
-    fn instance_props<T: Component>(&self) -> T::Props {
-        unimplemented!()
-    }
-
     fn take_props(&mut self) -> *mut Props {
         self.props.take()
             .expect("Props already taken")
