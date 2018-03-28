@@ -220,8 +220,10 @@ fn impl_update_fn(fields: &Fields) -> Tokens {
         }).collect::<Vec<_>>();
         quote! {
             fn update(&mut self, props: Self::Props) {
-                let inner = &mut *self.inner.borrow_mut();
-                #(#props_tokens)*
+                {
+                    let inner = &mut *self.inner.borrow_mut();
+                    #(#props_tokens)*
+                }
                 self.inner.borrow().notify();
             }
         }
@@ -273,7 +275,7 @@ fn impl_state_setters_and_notifier(state: &Ident, fields: &Fields) -> Tokens {
                         #[allow(dead_code)]
                         fn #fn_name(&mut self, value: #ty) {
                             self.#ident = value;
-                            self.notifier();
+                            self.notify();
                         }
                     }
                 );
@@ -283,9 +285,9 @@ fn impl_state_setters_and_notifier(state: &Ident, fields: &Fields) -> Tokens {
                     #(#setters)*
 
                     #[allow(dead_code)]
-                    fn notifier(&self) {
-                        let notifier = &self.notifier;
-                        notifier();
+                    fn notify(&self) {
+                        let notify = &self.notifier;
+                        notify();
                     }
                 }
             }
