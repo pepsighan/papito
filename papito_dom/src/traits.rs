@@ -27,7 +27,7 @@ pub trait Component: Lifecycle {
 
     fn update(&mut self, props: Self::Props);
 
-    fn props(&self) -> &Self::Props;
+    fn eq_props(&self, rhs: &Self::Props) -> bool;
 }
 
 pub trait Lifecycle: Render + AsAny {
