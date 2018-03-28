@@ -92,12 +92,12 @@ fn main() {
 
 ### Features Supported
 
-[x] Component props
-[ ] Component Events
-[x] DOM Events
-[x] Reactive states
-[x] Component Lifecycle (only some)
-[x] Server Renderer
-[x] Hyperscript macro h!
-[ ] Vue-like template syntax
-[ ] Context API?
+* [x] Component props
+* [ ] Component Events
+* [x] DOM Events
+* [x] Reactive states
+* [x] Component Lifecycle (only some)
+* [x] Server Renderer
+* [x] Hyperscript macro h!
+* [ ] Vue-like template syntax
+* [ ] Context API?
