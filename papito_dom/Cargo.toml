@@ -2,6 +2,13 @@
 name = "papito_dom"
 version = "0.1.0"
 authors = ["Sharad Chand <sharad.d.chand@gmail.com>"]
+description = "VDOM Library for the Papito WASM Framework"
+documentation = "https://docs.rs/papito_dom"
+homepage = "https://github.com/csharad/papito"
+repository = "https://github.com/csharad/papito"
+readme = "../README.md"
+keywords = ["papito", "web", "framework", "wasm", "dom"]
+license = "MIT"
 
 [dependencies]
 indexmap = "1.0.0"
