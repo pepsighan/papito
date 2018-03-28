@@ -270,7 +270,6 @@ mod wasm {
                 if self.state_changed() {
                     self.unset_state_changed();
                     let old_rendered = self.rendered.take().unwrap();
-                    // TODO: Support props
                     let instance = self.instance.as_mut().unwrap();
                     let newly_rendered = instance.render();
                     let newly_rendered = newly_rendered.patch(parent, next, Some(*old_rendered), render_req);
