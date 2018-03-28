@@ -70,7 +70,7 @@ pub fn ev<E, T, F>(listener: E) -> Box<events::DOMEvent> where
 macro_rules! h {
     // Creates a component vnode with map as props where props is a struct
     (comp $t:ty, { $( $k:ident => $v:expr ),* } $(,)*) => {{
-        type T = <<$t as ComponentOf>::Comp as Component>::Props;
+        type T = <<$t as $crate::ComponentOf>::Comp as $crate::Component>::Props;
         $crate::h($crate::comp::<$t>(T {
             $( $k: $v ),*
         }))
