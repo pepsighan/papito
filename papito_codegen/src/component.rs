@@ -267,18 +267,20 @@ fn impl_state_setters_and_notifier(state: &Ident, fields: &Fields) -> Tokens {
             let named = &named_fields.named;
             let mut setters = vec![];
             for field in named.iter() {
-                let ident = field.ident.as_ref().unwrap();
-                let fn_name = Ident::from(format!("set_{}", ident));
-                let ty = &field.ty;
-                setters.push(
-                    quote! {
-                        #[allow(dead_code)]
-                        fn #fn_name(&mut self, value: #ty) {
-                            self.#ident = value;
-                            self.notify();
+                if !is_prop_field(field) {
+                    let ident = field.ident.as_ref().unwrap();
+                    let fn_name = Ident::from(format!("set_{}", ident));
+                    let ty = &field.ty;
+                    setters.push(
+                        quote! {
+                            #[allow(dead_code)]
+                            fn #fn_name(&mut self, value: #ty) {
+                                self.#ident = value;
+                                self.notify();
+                            }
                         }
-                    }
-                );
+                    );
+                }
             }
             quote! {
                 impl #state {
