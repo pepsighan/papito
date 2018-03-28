@@ -8,7 +8,7 @@ use std::cell::RefCell;
 use traits::Component;
 use traits::Lifecycle;
 #[cfg(not(target_arch = "wasm32"))]
-use traits::{ServerRender, AsAny};
+use traits::ServerRender;
 #[cfg(target_arch = "wasm32")]
 use events::RenderRequestSender;
 use std::mem;
@@ -26,6 +26,7 @@ pub struct VComponent {
     #[cfg(target_arch = "wasm32")]
     props_setter: Box<Fn(&mut Box<Lifecycle>, *mut Props)>,
     rendered: Option<Box<VNode>>,
+    #[cfg(target_arch = "wasm32")]
     state_changed: Rc<RefCell<bool>>,
 }
 
@@ -89,8 +90,7 @@ impl VComponent {
                 };
                 Box::new(T::create(props, notifier))
             }),
-            rendered: None,
-            state_changed,
+            rendered: None
         }
     }
 
@@ -120,15 +120,18 @@ impl VComponent {
         props_setter(self.instance.as_mut().unwrap(), props);
     }
 
+    #[cfg(target_arch = "wasm32")]
     fn take_props(&mut self) -> *mut Props {
         self.props.take()
             .expect("Props already taken")
     }
 
+    #[cfg(target_arch = "wasm32")]
     fn state_changed(&self) -> bool {
         *self.state_changed.borrow()
     }
 
+    #[cfg(target_arch = "wasm32")]
     fn unset_state_changed(&self) {
         *self.state_changed.borrow_mut() = false;
     }
