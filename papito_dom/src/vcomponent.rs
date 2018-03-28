@@ -58,10 +58,7 @@ impl VComponent {
                 };
                 let instance = instance.as_any().downcast_mut::<T>()
                     .expect("Impossible. The instance cannot be of any other type");
-                let is_diff = {
-                    let old_props = T::props(instance);
-                    &props != old_props
-                };
+                let is_diff = instance.eq_props(&props);
                 if is_diff {
                     T::update(instance, props);
                 }
