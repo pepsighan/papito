@@ -135,9 +135,18 @@ fn impl_component_trait(comp_ident: &Ident, state_ident: &Ident, props_ident: &I
     let create_fn = impl_create_fn(comp_ident, state_ident, fields);
     let update_fn = impl_update_fn(fields);
     let props_eq_fn = impl_eq_props_fn(fields);
+    let props_ty = if get_props_from_fields(fields).is_empty() {
+        quote! {
+            ()
+        }
+    } else {
+        quote! {
+            #props_ident
+        }
+    };
     quote! {
         impl ::papito_dom::Component for #comp_ident {
-            type Props = #props_ident;
+            type Props = #props_ty;
 
             #create_fn
 
@@ -242,8 +251,9 @@ fn impl_eq_props_fn(fields: &Fields) -> Tokens {
         }
     } else {
         quote! {
-            fn props(&self, _: &Self::Props) -> bool {
-                false
+            fn eq_props(&self, _: &Self::Props) -> bool {
+                // all props are eq if there are no props
+                true
             }
         }
     }
@@ -298,16 +308,15 @@ fn generate_props_struct(ident: &Ident, fields: &Fields) -> Tokens {
             #ident: #ty
         }
     }).collect::<Vec<_>>();
-    if field_tokens.is_empty() {
+    if !field_tokens.is_empty() {
         quote! {
-            struct #ident;
-        }
-    } else {
-        quote! {
+            #[derive(PartialEq)]
             struct #ident {
                 #(#field_tokens),*
             }
         }
+    } else {
+        quote!()
     }
 }
 
