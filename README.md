@@ -41,7 +41,7 @@ impl Render for Div {
         h!("div", { "style" => "background-color: #fafafa; color: #666;" },
             h!([
                 h!("This is the front page of web."),
-                h!(comp Button, { disabled => false })
+                h!(comp Button, { style => "background-color: black; color: white;".to_string() })
             ]))
     }
 }
@@ -49,7 +49,7 @@ impl Render for Div {
 #[component]
 struct Button {
     #[prop]
-    disabled: bool,
+    style: String,
     click: bool
 }
 
@@ -76,10 +76,10 @@ impl Lifecycle for Button {
 impl Render for Button {
     fn render(&self) -> VNode {
         let click = self.inner.borrow().click;
-        let disabled = self.inner.borrow().disabled;
+        let style = self.inner.borrow().style.clone();
         h!([
             h!("h1", h!("Hello World!")),
-            h!("button", { "disabled" => disabled.to_string() }, [ self.on_click() ], h!("Click")),
+            h!("button", { "style" => style }, [ self.on_click() ], h!("Click")),
             h!("h3", h!(if click { "You clicked" } else { "You unclicked" }))
         ])
     }
