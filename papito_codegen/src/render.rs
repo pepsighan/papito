@@ -15,7 +15,7 @@ pub fn quote(item: Item) -> Tokens {
 }
 
 fn impl_render(item_impl: ItemImpl) -> Tokens {
-    let (_, trait_, _) = item_impl.trait_
+    item_impl.trait_
         .expect("The `#[render]` attribute is only allowed on `papito::prelude::Render` trait impl block");
     let self_ty = *item_impl.self_ty;
     let (ident, comp_ty) = match self_ty.clone() {
@@ -34,11 +34,11 @@ fn impl_render(item_impl: ItemImpl) -> Tokens {
             struct _AssertComponent where #comp_ty: ::papito_dom::Component;
         }
 
-        impl #trait_ for #comp_ty {
+        impl ::papito::prelude::Render for #comp_ty {
             #(#impl_items)*
         }
 
-        impl #trait_ for #self_ty {
+        impl ::papito::prelude::Render for #self_ty {
             fn render(&self) -> ::papito_dom::prelude::VNode {
                 unimplemented!()
             }
