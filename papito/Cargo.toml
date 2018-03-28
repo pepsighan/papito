@@ -2,7 +2,14 @@
 name = "papito"
 version = "0.1.0"
 authors = ["Sharad Chand <sharad.d.chand@gmail.com>"]
+description = "A Beginner Friendly Rusty WASM Framework"
+documentation = "https://docs.rs/papito"
+homepage = "https://github.com/csharad/papito"
+repository = "https://github.com/csharad/papito"
+readme = "../README.md"
+keywords = ["papito", "web", "framework", "wasm"]
+license = "MIT"
 
 [dependencies]
 stdweb = "0.4.2"
-papito_dom = { path = "../papito_dom" }
+papito_dom = "0.1.0"

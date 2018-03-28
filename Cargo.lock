@@ -40,7 +40,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "papito"
 version = "0.1.0"
 dependencies = [
- "papito_dom 0.1.0",
+ "papito_dom 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "stdweb 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -60,6 +60,15 @@ dependencies = [
 [[package]]
 name = "papito_dom"
 version = "0.1.0"
+dependencies = [
+ "indexmap 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "stdweb 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "papito_dom"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "indexmap 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "stdweb 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -181,6 +190,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum indexmap 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "7b9378f1f3923647a9aea6af4c6b5de68cc8a71415459ad25ef191191c48f5b7"
 "checksum itoa 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)" = "8324a32baf01e2ae060e9de58ed0bc2320c9a2833491ee36cd3b4c414de4db8c"
 "checksum num-traits 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "0b3c2bd9b9d21e48e956b763c9f37134dc62d9e95da6edb3f672cacb6caf3cd3"
+"checksum papito_dom 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a3de0e4560f93fb3f9685f3f659c8240c2a3d0a867ff73f57b32cc2d991e3b9b"
 "checksum proc-macro2 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "cd07deb3c6d1d9ff827999c7f9b04cdfd66b1b17ae508e14fe47b620f2282ae0"
 "checksum quote 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)" = "1eca14c727ad12702eb4b6bfb5a232287dcf8385cb8ca83a3eeaf6519c44c408"
 "checksum serde 1.0.33 (registry+https://github.com/rust-lang/crates.io-index)" = "4fe95aa0d46f04ce5c3a88bdcd4114ecd6144ed0b2725ebca2f1127744357807"
