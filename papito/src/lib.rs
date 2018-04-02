@@ -4,7 +4,7 @@ extern crate papito_dom;
 extern crate stdweb;
 
 use papito_dom::prelude::VNode;
-use papito_dom::{comp, h, Component, ComponentOf};
+use papito_dom::{comp, h, Component};
 #[cfg(target_arch = "wasm32")]
 use stdweb::web::{document, Element, INonElementParentNode};
 #[cfg(target_arch = "wasm32")]
@@ -22,8 +22,7 @@ pub struct App {
 }
 
 impl App {
-    pub fn new<C: ComponentOf>() -> App where
-        C::Comp: Component<Props=()> + 'static {
+    pub fn new<C: Component<Props=()> + 'static>() -> App {
         #[cfg(target_arch = "wasm32")]
         js! { @(no_return)
             window.__schedule_papito_render__ = function() {};

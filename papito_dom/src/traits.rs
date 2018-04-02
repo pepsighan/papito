@@ -48,10 +48,6 @@ pub trait AsAny {
     fn as_any(&mut self) -> &mut Any;
 }
 
-pub trait ComponentOf {
-    type Comp: Component;
-}
-
 impl<T: Lifecycle + 'static> AsAny for T {
     fn as_any(&mut self) -> &mut Any {
         self
