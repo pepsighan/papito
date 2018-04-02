@@ -12,6 +12,13 @@ use syn::{Item, DeriveInput};
 
 mod events;
 mod common;
+mod component;
+
+#[proc_macro_attribute]
+pub fn component(_metadata: TokenStream, input: TokenStream) -> TokenStream {
+    let item: Item = syn::parse(input).unwrap();
+    component::quote(item).into()
+}
 
 #[proc_macro_derive(Lifecycle)]
 pub fn derive_lifecycle(input: TokenStream) -> TokenStream {
