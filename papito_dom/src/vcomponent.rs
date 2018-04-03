@@ -57,7 +57,7 @@ impl VComponent {
                 let props: T::Props = unsafe {
                     *Box::from_raw(mem::transmute(props))
                 };
-                let instance = instance.as_any().downcast_mut::<T>()
+                let instance = instance.as_any().downcast_ref::<T>()
                     .expect("Impossible. The instance cannot be of any other type");
                 let is_diff = instance.eq_props(&props);
                 if is_diff {
@@ -107,7 +107,7 @@ impl VComponent {
     fn init(&mut self) {
         let initializer = &self.initializer;
         let props = self.props.take().expect("Impossible. The props are always provided");
-        let mut instance = initializer(props);
+        let instance = initializer(props);
         instance.created();
         self.instance = Some(instance);
     }
