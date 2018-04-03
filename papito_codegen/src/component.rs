@@ -189,6 +189,7 @@ impl ComponentData {
 
         let create_fn = self.quote_create_fn();
         let update_fn = self.quote_update_fn();
+        let eq_props_fn = self.quote_eq_props_fn();
 
         quote! {
             impl ::papito_dom::Component for #component {
@@ -198,7 +199,7 @@ impl ComponentData {
 
                 #update_fn
 
-                fn eq_props(&self, rhs: &Self::Props) -> bool;
+                #eq_props_fn
             }
         }
     }
@@ -254,6 +255,25 @@ impl ComponentData {
         } else {
             quote! {
                 fn update(&self, _: Self::Props) {}
+            }
+        }
+    }
+
+    fn quote_eq_props_fn(&self) -> Tokens {
+        if self.props.is_some() {
+            let props_eq = self.fields.quote_props_eq();
+            quote! {
+                fn eq_props(&self, props: &Self::Props) -> bool {
+                    let _data = &*self._data.borrow();
+                    #props_eq
+                }
+            }
+        } else {
+            // If there are no props, then the components have the same props
+            quote! {
+                fn eq_props(&self, _: &Self::Props) -> bool {
+                    true
+                }
             }
         }
     }
@@ -360,6 +380,17 @@ impl DataFields {
             .collect();
         quote! {
             #(#updates)*
+        }
+    }
+
+    fn quote_props_eq(&self) -> Tokens {
+        let eqs: Vec<_> = self.fields.iter()
+            .map(|it| it.quote_props_eq())
+            .filter(|it| it.is_some())
+            .map(|it| it.unwrap())
+            .collect();
+        quote! {
+            #(#eqs) && *
         }
     }
 }
@@ -479,6 +510,17 @@ impl DataField {
             }
         } else {
             quote!()
+        }
+    }
+
+    fn quote_props_eq(&self) -> Option<Tokens> {
+        if self.is_prop {
+            let ident = &self.ident;
+            Some(quote! {
+                _data.#ident == props.#ident
+            })
+        } else {
+            None
         }
     }
 }
