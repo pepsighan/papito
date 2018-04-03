@@ -188,6 +188,7 @@ impl ComponentData {
         };
 
         let create_fn = self.quote_create_fn();
+        let update_fn = self.quote_update_fn();
 
         quote! {
             impl ::papito_dom::Component for #component {
@@ -195,7 +196,7 @@ impl ComponentData {
 
                 #create_fn
 
-                fn update(&self, props: Self::Props);
+                #update_fn
 
                 fn eq_props(&self, rhs: &Self::Props) -> bool;
             }
@@ -236,6 +237,23 @@ impl ComponentData {
                 fn create(_: Self::Props, _: Box<Fn()>) -> Self {
                     #component
                 }
+            }
+        }
+    }
+
+    fn quote_update_fn(&self) -> Tokens {
+        if self.props.is_some() {
+            let props_update = self.fields.quote_props_update();
+            quote! {
+                fn update(&self, props: Self::Props) {
+                    let _data = &mut self._data.borrow_mut();
+                    #props_update
+                    self._notify();
+                }
+            }
+        } else {
+            quote! {
+                fn update(&self, _: Self::Props) {}
             }
         }
     }
@@ -333,6 +351,15 @@ impl DataFields {
             .collect();
         quote! {
             #(#inits),*
+        }
+    }
+
+    fn quote_props_update(&self) -> Tokens {
+        let updates: Vec<_> = self.fields.iter()
+            .map(|it| it.quote_props_update())
+            .collect();
+        quote! {
+            #(#updates)*
         }
     }
 }
@@ -441,6 +468,17 @@ impl DataField {
             quote! {
                 #ident: Default::default()
             }
+        }
+    }
+
+    fn quote_props_update(&self) -> Tokens {
+        if self.is_prop {
+            let ident = &self.ident;
+            quote! {
+                _data.#ident = props.#ident;
+            }
+        } else {
+            quote!()
         }
     }
 }
