@@ -25,6 +25,7 @@ pub fn quote(item: Item) -> Tokens {
 }
 
 struct ComponentStruct {
+    attrs: Vec<Attribute>,
     vis: Visibility,
     component: Ident,
     data: Option<Ident>,
@@ -32,9 +33,11 @@ struct ComponentStruct {
 
 impl ComponentStruct {
     fn parse(item: &ItemStruct) -> ComponentStruct {
+        let attrs = item.attrs.clone();
         let vis = item.vis.clone();
         let component = item.ident.clone();
         ComponentStruct {
+            attrs,
             vis,
             component,
             data: None,
@@ -46,10 +49,12 @@ impl ComponentStruct {
     }
 
     fn quote(self) -> Tokens {
+        let attrs = self.attrs;
         let vis = self.vis;
         let component = self.component;
         if let Some(data) = self.data {
             quote! {
+                #(#attrs)*
                 #vis struct #component {
                     _data: ::std::rc::Rc<::std::cell::RefCell<#data>>,
                     _notifier: Box<Fn()>
@@ -63,6 +68,7 @@ impl ComponentStruct {
             }
         } else {
             quote! {
+                #(#attrs)*
                 #vis struct #component;
             }
         }
