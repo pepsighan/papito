@@ -10,23 +10,14 @@ extern crate proc_macro2;
 use proc_macro::TokenStream;
 use syn::{Item, DeriveInput};
 
-mod component;
-mod render;
 mod events;
 mod common;
+mod component;
 
 #[proc_macro_attribute]
 pub fn component(_metadata: TokenStream, input: TokenStream) -> TokenStream {
-    let state: Item = syn::parse(input).unwrap();
-    let expanded = component::quote(state);
-    expanded.into()
-}
-
-#[proc_macro_attribute]
-pub fn render(_metadata: TokenStream, input: TokenStream) -> TokenStream {
     let item: Item = syn::parse(input).unwrap();
-    let expanded = render::quote(item);
-    expanded.into()
+    component::quote(item).into()
 }
 
 #[proc_macro_derive(Lifecycle)]

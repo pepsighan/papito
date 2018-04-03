@@ -21,23 +21,23 @@ pub trait RenderToString {
 }
 
 pub trait Component: Lifecycle {
-    type Props: PartialEq;
+    type Props;
 
     fn create(props: Self::Props, notifier: Box<Fn()>) -> Self;
 
-    fn update(&mut self, props: Self::Props);
+    fn update(&self, props: Self::Props);
 
     fn eq_props(&self, rhs: &Self::Props) -> bool;
 }
 
 pub trait Lifecycle: Render + AsAny {
-    fn created(&mut self) {}
+    fn created(&self) {}
 
-    fn mounted(&mut self) {}
+    fn mounted(&self) {}
 
-    fn updated(&mut self) {}
+    fn updated(&self) {}
 
-    fn destroyed(&mut self) {}
+    fn destroyed(&self) {}
 }
 
 pub trait Render {
@@ -45,15 +45,11 @@ pub trait Render {
 }
 
 pub trait AsAny {
-    fn as_any(&mut self) -> &mut Any;
-}
-
-pub trait ComponentOf {
-    type Comp: Component;
+    fn as_any(&self) -> &Any;
 }
 
 impl<T: Lifecycle + 'static> AsAny for T {
-    fn as_any(&mut self) -> &mut Any {
+    fn as_any(&self) -> &Any {
         self
     }
 }

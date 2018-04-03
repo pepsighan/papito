@@ -1,350 +1,537 @@
-use heck::SnakeCase;
 use quote::Tokens;
-use syn::{Attribute, Field, Fields, FieldsNamed, Ident, Item, ItemStruct, Visibility, Path};
+use syn::{Attribute, Field, Fields, Ident, Item, ItemStruct, Path, Type, Visibility};
 
-pub fn quote(state: Item) -> Tokens {
-    match state {
-        Item::Struct(ref struct_item) => {
-            quote_struct_item(struct_item)
-        }
-        Item::Fn(_) => {
-            quote! {}
+pub fn quote(item: Item) -> Tokens {
+    match item {
+        Item::Struct(item_struct) => {
+            let mut component_data = ComponentData::parse(&item_struct);
+            component_data.quote()
         }
         _ => {
-            panic!("The attribute is only allowed for fns and structs");
+            panic!("`#[component]` can only be used on a struct");
         }
     }
 }
 
-fn quote_struct_item(item: &ItemStruct) -> Tokens {
-    let state_ident = &item.ident;
-    let props_ident = &Ident::from(format!("{}Prop", item.ident));
-    let comp_ident = &Ident::from(format!("{}Component", item.ident));
-    let state_fields = &item.fields;
-    let vis = &item.vis;
-    let props_struct = generate_props_struct(props_ident, state_fields);
-    let augmented_state = augment_state_struct(item.attrs.clone(), vis, state_ident, state_fields);
-    let assert_lifecycle = assert_lifecycle(state_ident);
-    let comp_struct = generate_component_struct(vis, comp_ident, state_ident);
-    let component_of = impl_component_of(comp_ident, state_ident);
-    let component_impl = impl_component_trait(comp_ident, state_ident, props_ident, state_fields);
-    let lifecycle_impl = impl_lifecycle_for_comp(comp_ident);
-    let state_setters = impl_state_setters_and_notifier(state_ident, state_fields);
-    quote! {
-        #augmented_state
-
-        #assert_lifecycle
-
-        #comp_struct
-
-        #component_of
-
-        #component_impl
-
-        #lifecycle_impl
-
-        #state_setters
-
-        #props_struct
-    }
+struct ComponentData {
+    attrs: Vec<Attribute>,
+    vis: Visibility,
+    component: Ident,
+    data: Option<Ident>,
+    props: Option<Ident>,
+    fields: DataFields,
 }
 
-fn impl_component_of(comp: &Ident, state: &Ident) -> Tokens {
-    quote! {
-        impl ::papito_dom::ComponentOf for #state {
-            type Comp = #comp;
+impl ComponentData {
+    fn parse(item: &ItemStruct) -> ComponentData {
+        let fields = DataFields::parse(&item.fields);
+        let component = item.ident.clone();
+        let attrs = item.attrs.clone();
+        let vis = item.vis.clone();
+        ComponentData {
+            attrs,
+            vis,
+            data: None,
+            props: None,
+            component,
+            fields,
         }
     }
-}
 
-fn generate_component_struct(vis: &Visibility, comp_ident: &Ident, state_ident: &Ident) -> Tokens {
-    quote! {
-        #vis struct #comp_ident {
-            inner: ::std::rc::Rc<::std::cell::RefCell<#state_ident>>
+    fn quote(&mut self) -> Tokens {
+        let data_struct = self.quote_data_struct();
+        let props_struct = self.quote_props_struct();
+        let data_impl = self.quote_data_impl();
+        let component_struct = self.quote_component_struct();
+        let component_impl = self.quote_component_impl();
+        let impl_component_trait = self.quote_impl_component_trait();
+        quote! {
+            #component_struct
+
+            #props_struct
+
+            #data_struct
+
+            #data_impl
+
+            #component_impl
+
+            #impl_component_trait
         }
     }
-}
 
-fn assert_lifecycle(state: &Ident) -> Tokens {
-    let mod_ = Ident::from(format!("{}StateAssertions", state).to_snake_case());
-    quote! {
-        mod #mod_ {
-            struct _AssertLifecycle where #state: ::papito_dom::Lifecycle;
-        }
-    }
-}
-
-fn impl_lifecycle_for_comp(comp: &Ident) -> Tokens {
-    quote! {
-        impl ::papito::prelude::Lifecycle for #comp {
-            fn created(&mut self) {
-                self.inner.borrow_mut().created();
-            }
-
-            fn mounted(&mut self) {
-                self.inner.borrow_mut().mounted();
-            }
-
-            fn updated(&mut self) {
-                self.inner.borrow_mut().updated();
-            }
-
-            fn destroyed(&mut self) {
-                self.inner.borrow_mut().destroyed();
-            }
-        }
-    }
-}
-
-fn augment_state_struct(attrs: Vec<Attribute>, vis: &Visibility, state_ident: &Ident, fields: &Fields) -> Tokens {
-    let notifier = Ident::from("notifier".to_string());
-    match *fields {
-        Fields::Named(ref fields_named) => {
-            let named = sanitize_fields(fields_named);
+    fn quote_component_struct(&self) -> Tokens {
+        let attrs = &self.attrs;
+        let vis = &self.vis;
+        let component = &self.component;
+        if let Some(data) = self.data {
             quote! {
                 #(#attrs)*
-                #vis struct #state_ident {
-                    #(#named),*,
-                    #notifier: Box<Fn()>
+                #vis struct #component {
+                    _data: ::std::rc::Rc<::std::cell::RefCell<#data>>,
+                    _notifier: Box<Fn()>
                 }
-            }
-        }
-        Fields::Unnamed(_) => {
-            panic!("Tuple structs are not supported as components");
-        }
-        Fields::Unit => {
-            quote! {
-                #(#attrs)*
-                #vis struct #state_ident;
-            }
-        }
-    }
-}
 
-fn sanitize_fields(fields_named: &FieldsNamed) -> Vec<Field> {
-    let prop_path = Path::from(Ident::from("prop".to_string()));
-    fields_named.named.clone().into_iter()
-        .map(|mut it| {
-            it.attrs = it.attrs.into_iter().filter(|attr| attr.path != prop_path)
-                .collect();
-            it
-        }).collect::<Vec<Field>>()
-}
-
-fn impl_component_trait(comp_ident: &Ident, state_ident: &Ident, props_ident: &Ident, fields: &Fields) -> Tokens {
-    let create_fn = impl_create_fn(comp_ident, state_ident, fields);
-    let update_fn = impl_update_fn(fields);
-    let props_eq_fn = impl_eq_props_fn(fields);
-    let props_ty = if get_props_from_fields(fields).is_empty() {
-        quote! {
-            ()
-        }
-    } else {
-        quote! {
-            #props_ident
-        }
-    };
-    quote! {
-        impl ::papito_dom::Component for #comp_ident {
-            type Props = #props_ty;
-
-            #create_fn
-
-            #update_fn
-
-            #props_eq_fn
-        }
-    }
-}
-
-fn impl_create_fn(comp_ident: &Ident, state_ident: &Ident, fields: &Fields) -> Tokens {
-    match *fields {
-        Fields::Named(ref fields_named) => {
-            quote_fields_named(comp_ident, state_ident, fields_named)
-        }
-        Fields::Unnamed(_) => {
-            panic!("Tuple structs are not supported as components");
-        }
-        Fields::Unit => {
-            quote_unit_field(comp_ident, state_ident)
-        }
-    }
-}
-
-fn quote_fields_named(comp_ident: &Ident, state_ident: &Ident, fields: &FieldsNamed) -> Tokens {
-    let mut field_inits = vec![];
-    for field in fields.named.iter() {
-        let ident = &field.ident.unwrap();
-        if !is_prop_field(field) {
-            field_inits.push(quote! {
-                #ident: Default::default()
-            });
-        } else {
-            field_inits.push(quote! {
-                #ident: props.#ident
-            });
-        }
-    }
-    quote! {
-        fn create(props: Self::Props, notifier: Box<Fn()>) -> Self {
-            let state = #state_ident {
-                #(#field_inits),*,
-                notifier
-            };
-            #comp_ident {
-                inner: ::std::rc::Rc::new(::std::cell::RefCell::new(state))
-            }
-        }
-    }
-}
-
-fn quote_unit_field(comp_ident: &Ident, state_ident: &Ident) -> Tokens {
-    quote! {
-        fn create(_: Self::Props, _: Box<Fn()>) -> Self {
-            let state = #state_ident;
-            #comp_ident {
-                inner: ::std::rc::Rc::new(::std::cell::RefCell::new(state))
-            }
-        }
-    }
-}
-
-fn impl_update_fn(fields: &Fields) -> Tokens {
-    let prop_fields = get_props_from_fields(fields);
-    if !prop_fields.is_empty() {
-        let props_tokens = prop_fields.iter().map(|it| {
-            let ident = &it.ident;
-            quote! {
-                inner.#ident = props.#ident;
-            }
-        }).collect::<Vec<_>>();
-        quote! {
-            fn update(&mut self, props: Self::Props) {
-                {
-                    let inner = &mut *self.inner.borrow_mut();
-                    #(#props_tokens)*
-                }
-                self.inner.borrow().notify();
-            }
-        }
-    } else {
-        quote! {
-            fn update(&mut self, _: Self::Props) {}
-        }
-    }
-}
-
-fn impl_eq_props_fn(fields: &Fields) -> Tokens {
-    let prop_fields = get_props_from_fields(fields);
-    if !prop_fields.is_empty() {
-        let comparisons = prop_fields.iter()
-            .map(|it| {
-                let ident = &it.ident;
-                quote! {
-                    inner.#ident == rhs.#ident
-                }
-            })
-            .collect::<Vec<_>>();
-        quote! {
-            fn eq_props(&self, rhs: &Self::Props) -> bool {
-                let inner = &*self.inner.borrow();
-                #(#comparisons) && *
-            }
-        }
-    } else {
-        quote! {
-            fn eq_props(&self, _: &Self::Props) -> bool {
-                // all props are eq if there are no props
-                true
-            }
-        }
-    }
-}
-
-fn impl_state_setters_and_notifier(state: &Ident, fields: &Fields) -> Tokens {
-    match *fields {
-        Fields::Named(ref named_fields) => {
-            let named = &named_fields.named;
-            let mut setters = vec![];
-            for field in named.iter() {
-                if !is_prop_field(field) {
-                    let ident = field.ident.as_ref().unwrap();
-                    let fn_name = Ident::from(format!("set_{}", ident));
-                    let ty = &field.ty;
-                    setters.push(
-                        quote! {
-                            #[allow(dead_code)]
-                            fn #fn_name(&mut self, value: #ty) {
-                                self.#ident = value;
-                                self.notify();
-                            }
-                        }
-                    );
-                }
-            }
-            quote! {
-                impl #state {
-                    #(#setters)*
-
-                    #[allow(dead_code)]
-                    fn notify(&self) {
-                        let notify = &self.notifier;
-                        notify();
+                impl #component {
+                    fn _notify(&self) {
+                        (self._notifier)();
                     }
                 }
             }
+        } else {
+            quote! {
+                #(#attrs)*
+                #vis struct #component;
+            }
         }
-        Fields::Unnamed(_) => {
-            panic!("Tuple structs are not supported as components");
-        }
-        Fields::Unit => {
+    }
+
+    fn quote_props_struct(&mut self) -> Tokens {
+        let props_fields = self.fields.quote_props_fields();
+        if let Some(props_fields) = props_fields {
+            let props = Ident::from(format!("_{}Props", &self.component));
+            self.props = Some(props);
+            let props = self.props.as_ref().unwrap();
+            quote! {
+                struct #props {
+                    #props_fields
+                }
+            }
+        } else {
             quote!()
         }
     }
+
+    fn quote_data_struct(&mut self) -> Tokens {
+        let data_fields = self.fields.quote_data_fields();
+        if let Some(data_fields) = data_fields {
+            let data = Ident::from(format!("_{}Data", &self.component));
+            self.data = Some(data);
+            let data = self.data.as_ref().unwrap();
+            quote! {
+                struct #data {
+                    #data_fields
+                }
+            }
+        } else {
+            quote!()
+        }
+    }
+
+    fn quote_data_impl(&self) -> Tokens {
+        if let Some(ref data) = self.data {
+            let data_getters = self.fields.quote_getters();
+            let data_setters = self.fields.quote_setters();
+            quote! {
+                impl #data {
+                    #data_getters
+
+                    #data_setters
+                }
+            }
+        } else {
+            quote!()
+        }
+    }
+
+    fn quote_component_impl(&self) -> Tokens {
+        if self.data.is_some() {
+            let component = &self.component;
+            let component_getters = self.fields.quote_component_getters();
+            let component_setters = self.fields.quote_component_setters();
+            quote! {
+                impl #component {
+                    #component_getters
+
+                    #component_setters
+                }
+            }
+        } else {
+            quote!()
+        }
+    }
+
+    fn quote_impl_component_trait(&self) -> Tokens {
+        let component = &self.component;
+
+        let props_ty = if let Some(ref props) = self.props {
+            quote!( #props )
+        } else {
+            quote!( () )
+        };
+
+        let create_fn = self.quote_create_fn();
+        let update_fn = self.quote_update_fn();
+        let eq_props_fn = self.quote_eq_props_fn();
+
+        quote! {
+            impl ::papito_dom::Component for #component {
+                type Props = #props_ty;
+
+                #create_fn
+
+                #update_fn
+
+                #eq_props_fn
+            }
+        }
+    }
+
+    fn quote_create_fn(&self) -> Tokens {
+        let component = &self.component;
+        if let Some(ref data) = self.data {
+            let data_init = self.fields.quote_data_init();
+            if self.props.is_some() {
+                quote! {
+                    fn create(props: Self::Props, notifier: Box<Fn()>) -> Self {
+                        let _data = #data {
+                            #data_init
+                        };
+                        #component {
+                            _data: ::std::rc::Rc::new(::std::cell::RefCell::new(_data)),
+                            _notifier: notifier
+                        }
+                    }
+                }
+            } else {
+                quote! {
+                    fn create(_: Self::Props, notifier: Box<Fn()>) -> Self {
+                        let _data = #data {
+                            #data_init
+                        };
+                        #component {
+                            _data: ::std::rc::Rc::new(::std::cell::RefCell::new(_data)),
+                            _notifier: notifier
+                        }
+                    }
+                }
+            }
+        } else {
+            quote! {
+                fn create(_: Self::Props, _: Box<Fn()>) -> Self {
+                    #component
+                }
+            }
+        }
+    }
+
+    fn quote_update_fn(&self) -> Tokens {
+        if self.data.is_some() && self.props.is_some() {
+            let props_update = self.fields.quote_props_update();
+            quote! {
+                    fn update(&self, props: Self::Props) {
+                        let _data = &mut self._data.borrow_mut();
+                        #props_update
+                        self._notify();
+                    }
+                }
+        } else {
+            quote! {
+                fn update(&self, _: Self::Props) {}
+            }
+        }
+    }
+
+    fn quote_eq_props_fn(&self) -> Tokens {
+        if self.data.is_some() && self.props.is_some() {
+            let props_eq = self.fields.quote_props_eq();
+            quote! {
+                fn eq_props(&self, props: &Self::Props) -> bool {
+                    let _data = &*self._data.borrow();
+                    #props_eq
+                }
+            }
+        } else {
+            // If there are no props, then the components have the same props
+            quote! {
+                fn eq_props(&self, _: &Self::Props) -> bool {
+                    true
+                }
+            }
+        }
+    }
 }
 
-fn generate_props_struct(ident: &Ident, fields: &Fields) -> Tokens {
-    let props = get_props_from_fields(fields);
-    let field_tokens = props.iter().map(|it| {
-        let ident = it.ident;
-        let ty = &it.ty;
+struct DataFields {
+    fields: Vec<DataField>
+}
+
+impl DataFields {
+    fn parse(fields: &Fields) -> DataFields {
+        match *fields {
+            Fields::Unit => DataFields { fields: vec![] },
+            Fields::Unnamed(_) => {
+                panic!("Tuple structs are not allowed as a `#[component]`")
+            }
+            Fields::Named(ref named_fields) => {
+                let fields = named_fields.named.iter()
+                    .map(|field| DataField::parse(field))
+                    .collect();
+                DataFields {
+                    fields
+                }
+            }
+        }
+    }
+
+    fn quote_data_fields(&self) -> Option<Tokens> {
+        let fields: Vec<_> = self.fields.iter()
+            .map(|it| it.quote_data_field())
+            .collect();
+        if !fields.is_empty() {
+            Some(quote! {
+                #(#fields),*
+            })
+        } else {
+            None
+        }
+    }
+
+    fn quote_props_fields(&self) -> Option<Tokens> {
+        let fields: Vec<_> = self.fields.iter()
+            .map(|it| it.quote_props_field())
+            .filter(|it| it.is_some())
+            .map(|it| it.unwrap())
+            .collect();
+        if !fields.is_empty() {
+            Some(quote! {
+                #(#fields),*
+            })
+        } else {
+            None
+        }
+    }
+
+    fn quote_getters(&self) -> Tokens {
+        let getters: Vec<_> = self.fields.iter()
+            .map(|it| it.quote_getters())
+            .collect();
+        quote! {
+            #(#getters)*
+        }
+    }
+
+    fn quote_component_getters(&self) -> Tokens {
+        let getters: Vec<_> = self.fields.iter()
+            .map(|it| it.quote_component_getters())
+            .collect();
+        quote! {
+            #(#getters)*
+        }
+    }
+
+    fn quote_setters(&self) -> Tokens {
+        let setters: Vec<_> = self.fields.iter()
+            .map(|it| it.quote_setters())
+            .collect();
+        quote! {
+            #(#setters)*
+        }
+    }
+
+    fn quote_component_setters(&self) -> Tokens {
+        let setters: Vec<_> = self.fields.iter()
+            .map(|it| it.quote_component_setters())
+            .collect();
+        quote! {
+            #(#setters)*
+        }
+    }
+
+    fn quote_data_init(&self) -> Tokens {
+        let inits: Vec<_> = self.fields.iter()
+            .map(|it| it.quote_data_init())
+            .collect();
+        quote! {
+            #(#inits),*
+        }
+    }
+
+    fn quote_props_update(&self) -> Tokens {
+        let updates: Vec<_> = self.fields.iter()
+            .map(|it| it.quote_props_update())
+            .collect();
+        quote! {
+            #(#updates)*
+        }
+    }
+
+    fn quote_props_eq(&self) -> Tokens {
+        let eqs: Vec<_> = self.fields.iter()
+            .map(|it| it.quote_props_eq())
+            .filter(|it| it.is_some())
+            .map(|it| it.unwrap())
+            .collect();
+        quote! {
+            #(#eqs) && *
+        }
+    }
+}
+
+struct DataField {
+    ident: Ident,
+    ty: Type,
+    is_prop: bool,
+}
+
+impl DataField {
+    fn parse(field: &Field) -> DataField {
+        if !field.vis.is_private() {
+            panic!("Only private fields allowed.");
+        }
+        DataField {
+            ident: field.ident.as_ref().unwrap().clone(),
+            ty: field.ty.clone(),
+            is_prop: field.attrs.has_prop_attribute(),
+        }
+    }
+
+    fn quote_data_field(&self) -> Tokens {
+        let ident = &self.ident;
+        let ty = &self.ty;
         quote! {
             #ident: #ty
         }
-    }).collect::<Vec<_>>();
-    if !field_tokens.is_empty() {
+    }
+
+    fn quote_props_field(&self) -> Option<Tokens> {
+        if self.is_prop {
+            let ident = &self.ident;
+            let ty = &self.ty;
+            Some(quote! {
+                #ident: #ty
+            })
+        } else {
+            None
+        }
+    }
+
+    fn quote_getters(&self) -> Tokens {
+        let ident = &self.ident;
+        let ty = &self.ty;
         quote! {
-            #[derive(PartialEq)]
-            struct #ident {
-                #(#field_tokens),*
+            fn #ident(&self) -> #ty {
+                self.#ident.clone()
             }
         }
-    } else {
-        quote!()
     }
-}
 
-fn get_props_from_fields(fields: &Fields) -> Vec<Field> {
-    match *fields {
-        Fields::Named(ref named_fields) => {
-            let mut list = vec![];
-            for field in named_fields.named.iter() {
-                if is_prop_field(field) {
-                    list.push(field.clone());
+    fn quote_component_getters(&self) -> Tokens {
+        let ident = &self.ident;
+        let ty = &self.ty;
+        quote! {
+            fn #ident(&self) -> #ty {
+                self._data.borrow().#ident()
+            }
+        }
+    }
+
+    fn quote_setters(&self) -> Option<Tokens> {
+        if !self.is_prop {
+            let ident = &self.ident;
+            let fn_ident = Ident::from(format!("set_{}", ident));
+            let ty = &self.ty;
+            Some(quote! {
+                fn #fn_ident(&mut self, value: #ty) -> bool {
+                    if self.#ident != value {
+                        self.#ident = value;
+                        true
+                    } else {
+                        false
+                    }
                 }
+            })
+        } else {
+            None
+        }
+    }
+
+    fn quote_component_setters(&self) -> Option<Tokens> {
+        if !self.is_prop {
+            let ident = &self.ident;
+            let fn_ident = Ident::from(format!("set_{}", ident));
+            let ty = &self.ty;
+            Some(quote! {
+                fn #fn_ident(&self, value: #ty) {
+                    let changed = self._data.borrow_mut().#fn_ident(value);
+                    if changed {
+                        self._notify();
+                    }
+                }
+            })
+        } else {
+            None
+        }
+    }
+
+    fn quote_data_init(&self) -> Tokens {
+        let ident = &self.ident;
+        if self.is_prop {
+            quote! {
+                #ident: props.#ident
             }
-            list
+        } else {
+            quote! {
+                #ident: Default::default()
+            }
         }
-        Fields::Unnamed(_) => {
-            panic!("Tuple structs are not supported as components");
+    }
+
+    fn quote_props_update(&self) -> Tokens {
+        if self.is_prop {
+            let ident = &self.ident;
+            quote! {
+                _data.#ident = props.#ident;
+            }
+        } else {
+            quote!()
         }
-        Fields::Unit => {
-            Vec::new()
+    }
+
+    fn quote_props_eq(&self) -> Option<Tokens> {
+        if self.is_prop {
+            let ident = &self.ident;
+            Some(quote! {
+                _data.#ident == props.#ident
+            })
+        } else {
+            None
         }
     }
 }
 
-fn is_prop_field(field: &Field) -> bool {
-    let prop_path = Path::from(Ident::from("prop".to_string()));
-    field.attrs.iter().any(|it| it.path == prop_path)
+trait HasPropAttribute {
+    fn has_prop_attribute(&self) -> bool;
+}
+
+impl HasPropAttribute for Vec<Attribute> {
+    fn has_prop_attribute(&self) -> bool {
+        self.iter().any(|it| it.has_prop_attribute())
+    }
+}
+
+impl HasPropAttribute for Attribute {
+    fn has_prop_attribute(&self) -> bool {
+        if self.path == Path::from(Ident::from(format!("prop"))) {
+            if !self.tts.is_empty() {
+                panic!("No arguments supported");
+            }
+            true
+        } else {
+            false
+        }
+    }
+}
+
+trait IsPrivate {
+    fn is_private(&self) -> bool;
+}
+
+impl IsPrivate for Visibility {
+    fn is_private(&self) -> bool {
+        match *self {
+            Visibility::Inherited => true,
+            _ => false
+        }
+    }
 }
