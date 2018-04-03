@@ -21,7 +21,7 @@ pub trait RenderToString {
 }
 
 pub trait Component: Lifecycle {
-    type Props: PartialEq;
+    type Props;
 
     fn create(props: Self::Props, notifier: Box<Fn()>) -> Self;
 
