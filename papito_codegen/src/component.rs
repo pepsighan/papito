@@ -427,7 +427,7 @@ impl DataField {
     }
 
     fn quote_setters(&self) -> Option<Tokens> {
-        if self.is_prop {
+        if !self.is_prop {
             let ident = &self.ident;
             let ty = &self.ty;
             Some(quote! {
@@ -446,7 +446,7 @@ impl DataField {
     }
 
     fn quote_component_setters(&self) -> Option<Tokens> {
-        if self.is_prop {
+        if !self.is_prop {
             let ident = &self.ident;
             let ty = &self.ty;
             Some(quote! {
