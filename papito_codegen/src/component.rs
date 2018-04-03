@@ -452,6 +452,7 @@ impl DataField {
             let fn_ident = Ident::from(format!("set_{}", ident));
             let ty = &self.ty;
             Some(quote! {
+                #[allow(dead_code)]
                 fn #fn_ident(&self, value: #ty) {
                     let changed = self._data.borrow_mut().#fn_ident(value);
                     if changed {
