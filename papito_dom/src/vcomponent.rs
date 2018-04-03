@@ -98,7 +98,7 @@ impl VComponent {
     fn init(&mut self, render_req: RenderRequestSender) {
         let initializer = &self.initializer;
         let props = self.props.take().expect("Impossible. The props are always provided");
-        let mut instance = initializer(props, render_req);
+        let instance = initializer(props, render_req);
         instance.created();
         self.instance = Some(instance);
     }
