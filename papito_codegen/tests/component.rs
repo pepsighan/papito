@@ -10,7 +10,7 @@ extern crate stdweb;
 
 use papito::prelude::{Lifecycle, Render};
 use papito_dom::prelude::VNode;
-use papito_codegen::{component, render, events, event};
+use papito_codegen::{component, render, event};
 use stdweb::web::event::ClickEvent;
 
 #[test]

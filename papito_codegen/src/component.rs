@@ -1,5 +1,6 @@
 use quote::Tokens;
 use syn::{Attribute, Field, Fields, Ident, Item, ItemStruct, Path, Type, Visibility};
+use common::IsPrivate;
 
 pub fn quote(item: Item) -> Tokens {
     match item {
@@ -520,19 +521,6 @@ impl HasPropAttribute for Attribute {
             true
         } else {
             false
-        }
-    }
-}
-
-trait IsPrivate {
-    fn is_private(&self) -> bool;
-}
-
-impl IsPrivate for Visibility {
-    fn is_private(&self) -> bool {
-        match *self {
-            Visibility::Inherited => true,
-            _ => false
         }
     }
 }
