@@ -1,4 +1,4 @@
-use syn::{Item, Ident, Block, Type, ItemFn, ReturnType, FnArg};
+use syn::{Item, Ident, Block, Type, ItemFn, ReturnType, FnArg, Pat};
 use quote::Tokens;
 use syn::spanned::Spanned;
 use common::IsPrivate;
@@ -18,6 +18,7 @@ pub fn quote(item: Item) -> Tokens {
 
 struct EventData {
     ident: Ident,
+    event_arg: Pat,
     event_ty: Type,
     block: Box<Block>,
     span: Span,
@@ -52,9 +53,9 @@ impl EventData {
                 panic!("First argument of event method must be of type `&self`");
             }
         };
-        let event_ty = match second_arg {
+        let (event_arg, event_ty) = match second_arg {
             FnArg::Captured(captured) => {
-                captured.ty
+                (captured.pat, captured.ty)
             }
             _ => {
                 panic!("Second argument of event method must be an explicit type");
@@ -63,6 +64,7 @@ impl EventData {
         let block = item.block;
         EventData {
             ident,
+            event_arg,
             event_ty,
             block,
             span,
@@ -71,12 +73,13 @@ impl EventData {
 
     fn quote(self) -> Tokens {
         let ident = self.ident;
+        let event_arg = self.event_arg;
         let event_ty = self.event_ty;
         let block = self.block;
         let span = self.span;
         quote_spanned! { span =>
-            fn #ident<'a>(&'a self) -> Fn(#event_ty) + 'a {
-                move |ev: #event_ty| {
+            fn #ident(&self) -> impl Fn(#event_ty) {
+                move |#event_arg: #event_ty| {
                     #block
                 }
             }
