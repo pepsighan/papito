@@ -79,9 +79,9 @@ impl EventData {
         let span = self.span;
         quote_spanned! { span =>
             fn #ident(&self) -> impl Fn(#event_ty) {
-                move |#event_arg: #event_ty| {
+                move |#event_arg: #event_ty|
                     #block
-                }
+
             }
         }
     }
