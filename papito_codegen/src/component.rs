@@ -429,9 +429,10 @@ impl DataField {
     fn quote_setters(&self) -> Option<Tokens> {
         if !self.is_prop {
             let ident = &self.ident;
+            let fn_ident = Ident::from(format!("set_{}", ident));
             let ty = &self.ty;
             Some(quote! {
-                fn set_#ident(&mut self, value: #ty) -> bool {
+                fn #fn_ident(&mut self, value: #ty) -> bool {
                     if self.#ident != value {
                         self.#ident = value;
                         true
@@ -448,10 +449,11 @@ impl DataField {
     fn quote_component_setters(&self) -> Option<Tokens> {
         if !self.is_prop {
             let ident = &self.ident;
+            let fn_ident = Ident::from(format!("set_{}", ident));
             let ty = &self.ty;
             Some(quote! {
-                fn set_#ident(&self, value: #ty) {
-                    let changed = self._data.borrow_mut().set_#ident(value);
+                fn #fn_ident(&self, value: #ty) {
+                    let changed = self._data.borrow_mut().#fn_ident(value);
                     if changed {
                         self._notify();
                     }
