@@ -10,7 +10,7 @@ extern crate proc_macro2;
 use proc_macro::TokenStream;
 use syn::{Item, DeriveInput};
 
-mod events;
+mod event;
 mod common;
 mod component;
 
@@ -31,19 +31,7 @@ pub fn derive_lifecycle(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute]
-pub fn events(_metadata: TokenStream, input: TokenStream) -> TokenStream {
-    let state: Item = syn::parse(input).unwrap();
-    let wrapper = events::quote(&state);
-    let expanded = quote! {
-        #state
-
-        #wrapper
-    };
-    expanded.into()
-}
-
-// Just a placeholder attribute to be used by `#[events]` otherwise it does not compile
-#[proc_macro_attribute]
 pub fn event(_metadata: TokenStream, input: TokenStream) -> TokenStream {
-    input
+    let item: Item = syn::parse(input).unwrap();
+    event::quote(item).into()
 }
