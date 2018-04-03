@@ -4,19 +4,8 @@ use syn::{Attribute, Field, Fields, Ident, Item, ItemStruct, Path, Type, Visibil
 pub fn quote(item: Item) -> Tokens {
     match item {
         Item::Struct(item_struct) => {
-            let component_data = ComponentData::parse(&item_struct);
-            let mut component_struct = ComponentStruct::parse(&item_struct);
-            if let Some(ref data) = component_data.data {
-                component_struct.set_data(data.clone());
-            }
-            let component_struct = component_struct.quote();
-            let component_data = component_data.quote();
-
-            quote! {
-                #component_struct
-
-                #component_data
-            }
+            let mut component_data = ComponentData::parse(&item_struct);
+            component_data.quote()
         }
         _ => {
             panic!("`#[component]` can only be used on a struct");
@@ -24,34 +13,57 @@ pub fn quote(item: Item) -> Tokens {
     }
 }
 
-struct ComponentStruct {
+struct ComponentData {
     attrs: Vec<Attribute>,
     vis: Visibility,
     component: Ident,
     data: Option<Ident>,
+    props: Option<Ident>,
+    fields: DataFields,
 }
 
-impl ComponentStruct {
-    fn parse(item: &ItemStruct) -> ComponentStruct {
+impl ComponentData {
+    fn parse(item: &ItemStruct) -> ComponentData {
+        let fields = DataFields::parse(&item.fields);
+        let component = item.ident.clone();
         let attrs = item.attrs.clone();
         let vis = item.vis.clone();
-        let component = item.ident.clone();
-        ComponentStruct {
+        ComponentData {
             attrs,
             vis,
-            component,
             data: None,
+            props: None,
+            component,
+            fields,
         }
     }
 
-    fn set_data(&mut self, data: Ident) {
-        self.data = Some(data);
+    fn quote(&mut self) -> Tokens {
+        let data_struct = self.quote_data_struct();
+        let props_struct = self.quote_props_struct();
+        let data_impl = self.quote_data_impl();
+        let component_struct = self.quote_component_struct();
+        let component_impl = self.quote_component_impl();
+        let impl_component_trait = self.quote_impl_component_trait();
+        quote! {
+            #component_struct
+
+            #props_struct
+
+            #data_struct
+
+            #data_impl
+
+            #component_impl
+
+            #impl_component_trait
+        }
     }
 
-    fn quote(self) -> Tokens {
-        let attrs = self.attrs;
-        let vis = self.vis;
-        let component = self.component;
+    fn quote_component_struct(&self) -> Tokens {
+        let attrs = &self.attrs;
+        let vis = &self.vis;
+        let component = &self.component;
         if let Some(data) = self.data {
             quote! {
                 #(#attrs)*
@@ -71,45 +83,6 @@ impl ComponentStruct {
                 #(#attrs)*
                 #vis struct #component;
             }
-        }
-    }
-}
-
-struct ComponentData {
-    data: Option<Ident>,
-    props: Option<Ident>,
-    fields: DataFields,
-    component: Ident,
-}
-
-impl ComponentData {
-    fn parse(item: &ItemStruct) -> ComponentData {
-        let fields = DataFields::parse(&item.fields);
-        let component = item.ident.clone();
-        ComponentData {
-            data: None,
-            props: None,
-            component,
-            fields,
-        }
-    }
-
-    fn quote(mut self) -> Tokens {
-        let data_struct = self.quote_data_struct();
-        let props_struct = self.quote_props_struct();
-        let data_impl = self.quote_data_impl();
-        let component_impl = self.quote_component_impl();
-        let impl_component_trait = self.quote_impl_component_trait();
-        quote! {
-            #props_struct
-
-            #data_struct
-
-            #data_impl
-
-            #component_impl
-
-            #impl_component_trait
         }
     }
 
@@ -216,7 +189,7 @@ impl ComponentData {
                         };
                         #component {
                             _data: ::std::rc::Rc::new(::std::cell::RefCell::new(_data)),
-                            _notifier
+                            _notifier: notifier
                         }
                     }
                 }
@@ -228,7 +201,7 @@ impl ComponentData {
                         };
                         #component {
                             _data: ::std::rc::Rc::new(::std::cell::RefCell::new(_data)),
-                            _notifier
+                            _notifier: notifier
                         }
                     }
                 }
@@ -243,15 +216,15 @@ impl ComponentData {
     }
 
     fn quote_update_fn(&self) -> Tokens {
-        if self.props.is_some() {
+        if self.data.is_some() && self.props.is_some() {
             let props_update = self.fields.quote_props_update();
             quote! {
-                fn update(&self, props: Self::Props) {
-                    let _data = &mut self._data.borrow_mut();
-                    #props_update
-                    self._notify();
+                    fn update(&self, props: Self::Props) {
+                        let _data = &mut self._data.borrow_mut();
+                        #props_update
+                        self._notify();
+                    }
                 }
-            }
         } else {
             quote! {
                 fn update(&self, _: Self::Props) {}
@@ -260,7 +233,7 @@ impl ComponentData {
     }
 
     fn quote_eq_props_fn(&self) -> Tokens {
-        if self.props.is_some() {
+        if self.data.is_some() && self.props.is_some() {
             let props_eq = self.fields.quote_props_eq();
             quote! {
                 fn eq_props(&self, props: &Self::Props) -> bool {
