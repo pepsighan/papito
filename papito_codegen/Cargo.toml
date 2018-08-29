@@ -1,6 +1,6 @@
 [package]
 name = "papito_codegen"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Sharad Chand <sharad.d.chand@gmail.com>"]
 description = "Codegen for the Papito WASM Framework"
 documentation = "https://docs.rs/papito_codegen"
@@ -20,6 +20,6 @@ proc-macro2 = { version = "0.2.3" }
 heck = "0.3.0"
 
 [dev-dependencies]
-papito = "0.1.0"
-papito_dom = "0.1.0"
+papito = "0.1.1"
+papito_dom = "0.1.1"
 stdweb = "0.4.2"

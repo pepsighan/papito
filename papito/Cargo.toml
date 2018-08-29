@@ -1,6 +1,6 @@
 [package]
 name = "papito"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Sharad Chand <sharad.d.chand@gmail.com>"]
 description = "A Beginner Friendly Rusty WASM Framework"
 documentation = "https://docs.rs/papito"
@@ -12,4 +12,4 @@ license = "MIT"
 
 [dependencies]
 stdweb = "0.4.2"
-papito_dom = { path = "../papito_dom", version = "0.1.0" }
+papito_dom = { path = "../papito_dom", version = "0.1.1" }
